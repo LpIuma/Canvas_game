@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频探险扫雷 - 持续探索版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --tile-hidden: #1e293b;
+            --tile-revealed: #334155;
+            --mine-color: #ef4444;
+            --safe-color: #10b981;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            overflow: hidden;
+        }
+
+        .minesweeper-grid {
+            display: grid;
+            gap: 4px;
+            margin: 0 auto;
+            user-select: none;
+        }
+
+        .tile {
+            aspect-ratio: 1/1;
+            background-color: var(--tile-hidden);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            position: relative;
+            overflow: hidden;
+            font-size: 1.2rem;
+        }
+
+        .tile:hover {
+            background-color: #475569;
+            transform: scale(1.05);
+        }
+
+        .tile.revealed {
+            background-color: var(--tile-revealed);
+            cursor: default;
+        }
+
+        /* 雷块即使被揭开，依然保持指针手势，提示可以重复点击 */
+        .tile.mine {
+            background-color: var(--mine-color) !important;
+            cursor: pointer; 
+        }
+
+        .tile.mine:hover {
+            filter: brightness(1.2);
+            transform: scale(1.05);
+        }
+
+        .video-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .video-container {
+            width: 90%;
+            max-width: 900px;
+            aspect-ratio: 16/9;
+            background: #000;
+            border: 2px solid #334155;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+        }
+
+        .status-bar {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(8px);
+        }
+
+        .count-1 { color: #3b82f6; }
+        .count-2 { color: #10b981; }
+        .count-3 { color: #ef4444; }
+        .count-4 { color: #8b5cf6; }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center h-screen p-4">
+
+    <!-- 状态栏 -->
+    <div class="status-bar mb-6 p-4 rounded-xl flex gap-8 items-center shadow-2xl border border-slate-700">
+        <div>💣 这里的雷只是视频: <span id="mine-count">0</span></div>
+        <div class="text-2xl font-bold text-blue-400">NON-STOP VIDEO MINESWEEPER</div>
+        <div>⏱ <span id="timer">0</span>s</div>
+        <button onclick="initGame()" class="bg-blue-600 hover:bg-blue-500 px-4 py-1 rounded font-bold transition">手动重置</button>
+    </div>
+
+    <!-- 游戏主网格 -->
+    <div id="grid" class="minesweeper-grid shadow-2xl"></div>
+
+    <!-- 视频播放弹窗 -->
+    <div id="video-overlay" class="video-overlay">
+        <h2 id="video-title" class="text-2xl mb-4 font-bold text-center px-4"></h2>
+        <div class="video-container" id="video-wrapper"></div>
+        <button id="close-btn" onclick="closeVideo()" class="mt-8 bg-white text-black px-10 py-3 rounded-full font-bold hover:bg-gray-200 transition-all active:scale-95">
+            继续探索
+        </button>
+    </div>
+
+    <script>
+        // --- 视频资源列表 ---
+        const SAFE_VIDEOS = [
+            "https://b23.tv/mGWneBP",
+            "https://b23.tv/BRhEH2B",
+            "https://b23.tv/1bnE5nX"
+        ];
+
+        const BAD_VIDEOS = [
+            "https://b23.tv/hf3EuqP",
+            "https://b23.tv/gxctBSS",
+            "https://b23.tv/wSMDAaw",
+            "https://b23.tv/q22O5L1",
+            "https://b23.tv/n2stt9p"
+        ];
+
+        const ROWS = 10;
+        const COLS = 10;
+        const MINES_COUNT = 15;
+        let board = [];
+        let timerInterval;
+        let seconds = 0;
+
+        function initGame() {
+            const grid = document.getElementById('grid');
+            grid.style.gridTemplateColumns = `repeat(${COLS}, 45px)`;
+            grid.innerHTML = '';
+            board = [];
+            seconds = 0;
+            clearInterval(timerInterval);
+            document.getElementById('timer').innerText = '0';
+            document.getElementById('mine-count').innerText = MINES_COUNT;
+
+            for (let r = 0; r < ROWS; r++) {
+                board[r] = [];
+                for (let c = 0; c < COLS; c++) {
+                    board[r][c] = { r, c, isMine: false, revealed: false, count: 0, element: null };
+                }
+            }
+
+            let minesPlaced = 0;
+            while (minesPlaced < MINES_COUNT) {
+                let r = Math.floor(Math.random() * ROWS), c = Math.floor(Math.random() * COLS);
+                if (!board[r][c].isMine) {
+                    board[r][c].isMine = true;
+                    minesPlaced++;
+                }
+            }
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c].isMine) continue;
+                    let count = 0;
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            let nr = r + dr, nc = c + dc;
+                            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && board[nr][nc].isMine) count++;
+                        }
+                    }
+                    board[r][c].count = count;
+                }
+            }
+
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    tile.onclick = () => handleTileClick(r, c);
+                    board[r][c].element = tile;
+                    grid.appendChild(tile);
+                }
+            }
+
+            timerInterval = setInterval(() => {
+                seconds++;
+                document.getElementById('timer').innerText = seconds;
+            }, 1000);
+        }
+
+        function handleTileClick(r, c) {
+            const tileData = board[r][c];
+            
+            // 如果点击的是已经揭开的块
+            if (tileData.revealed) {
+                // 如果是雷，允许重复观看视频
+                if (tileData.isMine) {
+                    playVideo(true);
+                }
+                return;
+            }
+
+            tileData.revealed = true;
+            
+            if (tileData.isMine) {
+                tileData.element.classList.add('mine');
+                tileData.element.innerText = '💣';
+                playVideo(true); 
+            } else {
+                tileData.element.classList.add('revealed');
+                if (tileData.count > 0) {
+                    tileData.element.innerText = tileData.count;
+                    tileData.element.classList.add(`count-${tileData.count}`);
+                } else {
+                    revealNeighbors(r, c);
+                }
+                
+                checkWin();
+
+                // 随机触发好看的视频 (仅在第一次点开时有概率触发)
+                if (Math.random() > 0.85) {
+                    playVideo(false);
+                }
+            }
+        }
+
+        function revealNeighbors(r, c) {
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    let nr = r + dr, nc = c + dc;
+                    if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && !board[nr][nc].revealed) {
+                        if (!board[nr][nc].isMine) {
+                            handleTileClick(nr, nc);
+                        }
+                    }
+                }
+            }
+        }
+
+        function playVideo(isMine) {
+            const overlay = document.getElementById('video-overlay');
+            const wrapper = document.getElementById('video-wrapper');
+            const title = document.getElementById('video-title');
+            
+            title.innerText = "";
+            
+            const pool = isMine ? BAD_VIDEOS : SAFE_VIDEOS;
+            const videoUrl = pool[Math.floor(Math.random() * pool.length)];
+            
+            const finalUrl = typeof videoUrl === 'string' ? videoUrl : videoUrl.url;
+
+            wrapper.innerHTML = `<iframe src="${finalUrl}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+            overlay.style.display = 'flex';
+        }
+
+        function closeVideo() {
+            document.getElementById('video-overlay').style.display = 'none';
+            document.getElementById('video-wrapper').innerHTML = '';
+        }
+
+        function checkWin() {
+            let currentRevealedSafe = 0;
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (!board[r][c].isMine && board[r][c].revealed) {
+                        currentRevealedSafe++;
+                    }
+                }
+            }
+            if (currentRevealedSafe === (ROWS * COLS) - MINES_COUNT) {
+                clearInterval(timerInterval);
+                setTimeout(() => {
+                    alert("你已经找出了所有安全视频！游戏圆满完成！");
+                }, 500);
+            }
+        }
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>
