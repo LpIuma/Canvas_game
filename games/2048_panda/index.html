@@ -1,1 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>熊猫人进化 2048 - 修复版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --grid-bg: #2a2a2a;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: #eeeeee;
+            font-family: "Clear Sans", "Helvetica Neue", Arial, sans-serif;
+            touch-action: none;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .grid-container {
+            position: relative;
+            width: 340px;
+            height: 340px;
+            background: var(--grid-bg);
+            border-radius: 8px;
+            padding: 12px;
+        }
+        .tile {
+            position: absolute;
+            transition: transform 100ms ease-in-out;
+            z-index: 10;
+        }
+        .tile-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            font-weight: bold;
+            font-size: 32px;
+            color: #fff;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.8);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+            animation: appear 150ms ease-out;
+        }
+        
+        /* 兜底背景色 */
+        .color-2 { background-color: #3e3e3e; }
+        .color-4 { background-color: #4a4a4a; }
+        .color-8 { background-color: #5a4a4a; }
+        .color-16 { background-color: #7a4a4a; }
+        .color-32 { background-color: #9a4a4a; }
+        .color-64 { background-color: #ba4a4a; }
+        .color-128 { background-color: #da4a4a; }
+        .color-256 { background-color: #ff4a4a; }
+        .color-512 { background-color: #ff2a2a; }
+        .color-1024 { background-color: #ff0000; }
+        .color-2048 { background-color: #8b0000; }
 
+        @keyframes appear {
+            0% { opacity: 0; transform: scale(0.5); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+        
+        .game-title {
+            background: linear-gradient(45deg, #ff4d4d, #990000);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+<body class="p-4">
+
+    <div class="max-w-md w-full">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-4xl font-bold game-title text-center">熊猫人进化</h1>
+            <div class="flex gap-2">
+                <div class="bg-[#222] p-2 rounded text-center min-w-[70px] border border-gray-700">
+                    <div class="text-gray-500 text-[10px] font-bold uppercase">得分</div>
+                    <div id="score" class="text-white text-lg font-bold">0</div>
+                </div>
+                <div class="bg-[#222] p-2 rounded text-center min-w-[70px] border border-gray-700">
+                    <div class="text-gray-500 text-[10px] font-bold uppercase">最高</div>
+                    <div id="best-score" class="text-white text-lg font-bold">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-board" class="grid-container shadow-2xl mb-4">
+            <div class="grid grid-cols-4 grid-rows-4 gap-3 h-full">
+                <div class="bg-[rgba(255,255,255,0.03)] rounded"></div>
+                <div class="bg-[rgba(255,255,255,0.03)] rounded"></div>
+                <div class="bg-[rgba(255,255,255,0.03)] rounded"></div>
+                <div class="bg-[rgba(255,255,255,0.03)] rounded"></div>
+                <div class="bg-[rgba(255,255,255,0.03)] rounded"></div>
+                <div class="bg-[rgba(255,255,255,0.03)] rounded"></div>
+                <div class="bg-[rgba(255,255,255,0.03)] rounded"></div>
+                <div class="bg-[rgba(255,255,255,0.03)] rounded"></div>
+                <div class="bg-[rgba(255,255,255,0.03)] rounded"></div>
+                <div class="bg-[rgba(255,255,255,0.03)] rounded"></div>
+                <div class="bg-[rgba(255,255,255,0.03)] rounded"></div>
+                <div class="bg-[rgba(255,255,255,0.03)] rounded"></div>
+                <div class="bg-[rgba(255,255,255,0.03)] rounded"></div>
+                <div class="bg-[rgba(255,255,255,0.03)] rounded"></div>
+                <div class="bg-[rgba(255,255,255,0.03)] rounded"></div>
+                <div class="bg-[rgba(255,255,255,0.03)] rounded"></div>
+            </div>
+            <div id="tile-container" class="absolute inset-0 p-[12px]"></div>
+        </div>
+
+        <div class="flex justify-between items-center mb-6">
+            <button onclick="game.restart()" class="bg-red-950 hover:bg-red-900 text-red-100 px-6 py-2 rounded-lg font-bold transition border border-red-800">重启轮回</button>
+            <p class="text-gray-500 text-xs">使用方向键或滑动屏幕</p>
+        </div>
+
+        <div class="bg-[#1a1a1a] p-3 rounded-lg border border-gray-800">
+            <p class="text-[10px] text-gray-500 uppercase font-bold mb-2 tracking-widest">进化图谱 (已加载云端资源)</p>
+            <div id="evolution-map" class="grid grid-cols-6 gap-2"></div>
+        </div>
+    </div>
+
+    <input type="file" id="image-uploader" class="hidden" accept="image/*">
+
+    <div id="game-over" class="fixed inset-0 bg-black/95 z-50 flex flex-col items-center justify-center hidden">
+        <h2 class="text-5xl font-bold text-red-700 mb-2">进化停止</h2>
+        <p id="final-score-text" class="text-gray-400 mb-8 font-mono">SCORE: 0</p>
+        <button onclick="game.restart()" class="bg-red-900 text-white px-12 py-3 rounded-full text-xl font-bold hover:bg-red-800 transition">再次尝试</button>
+    </div>
+
+    <script>
+        // 已填入你提供的所有图床链接
+        const IMAGE_SOURCES = {
+            2:    "https://pic1.imgdb.cn/item/699de40c01b9a5550a560e55.jpg",
+            4:    "https://pic1.imgdb.cn/item/699de3d401b9a5550a560e48.jpg",
+            8:    "https://pic1.imgdb.cn/item/699de3d401b9a5550a560e46.jpg",
+            16:   "https://pic1.imgdb.cn/item/699de3d401b9a5550a560e47.jpg",
+            32:   "https://pic1.imgdb.cn/item/699de3d301b9a5550a560e45.jpg",
+            64:   "https://pic1.imgdb.cn/item/699de3d401b9a5550a560e4a.jpg",
+            128:  "https://pic1.imgdb.cn/item/699de3d401b9a5550a560e49.jpg",
+            256:  "https://pic1.imgdb.cn/item/699de41901b9a5550a560e56.jpg",
+            512:  "https://pic1.imgdb.cn/item/699de41901b9a5550a560e57.jpg",
+            1024: "https://pic1.imgdb.cn/item/699de41a01b9a5550a560e58.jpg",
+            2048: "https://pic1.imgdb.cn/item/699de41a01b9a5550a560e58.jpg" // 复用最后一级
+        };
+
+        class Game2048 {
+            constructor() {
+                this.grid = Array(4).fill().map(() => Array(4).fill(0));
+                this.score = 0;
+                this.bestScore = parseInt(localStorage.getItem('panda_best')) || 0;
+                this.customImages = JSON.parse(localStorage.getItem('panda_images')) || {};
+                
+                this.container = document.getElementById('tile-container');
+                this.scoreEl = document.getElementById('score');
+                this.bestEl = document.getElementById('best-score');
+                this.uploader = document.getElementById('image-uploader');
+                this.uploadTarget = null;
+
+                this.bestEl.innerText = this.bestScore;
+                this.setupControls();
+                this.setupUploader();
+                this.renderMap();
+                this.restart();
+            }
+
+            restart() {
+                this.grid = Array(4).fill().map(() => Array(4).fill(0));
+                this.score = 0;
+                this.scoreEl.innerText = 0;
+                document.getElementById('game-over').classList.add('hidden');
+                this.addTile();
+                this.addTile();
+                this.draw();
+            }
+
+            addTile() {
+                let empty = [];
+                for(let r=0; r<4; r++) for(let c=0; c<4; c++) if(!this.grid[r][c]) empty.push({r,c});
+                if(empty.length) {
+                    const {r, c} = empty[Math.floor(Math.random()*empty.length)];
+                    this.grid[r][c] = Math.random() < 0.9 ? 2 : 4;
+                }
+            }
+
+            draw() {
+                this.container.innerHTML = '';
+                const size = 70; 
+                const gap = 12;
+
+                for(let r=0; r<4; r++) {
+                    for(let c=0; c<4; c++) {
+                        const v = this.grid[r][c];
+                        if(v) {
+                            const tile = document.createElement('div');
+                            tile.className = 'tile';
+                            tile.style.width = '70px';
+                            tile.style.height = '70px';
+                            tile.style.transform = `translate(${c * (70 + 12)}px, ${r * (70 + 12)}px)`;
+                            
+                            const inner = document.createElement('div');
+                            inner.className = `tile-inner color-${v}`;
+                            
+                            const src = this.customImages[v] || IMAGE_SOURCES[v];
+                            if(src) {
+                                inner.style.backgroundImage = `url(${src})`;
+                                // 如果有图，隐藏数字标签，仅留一个很淡的辅助显示
+                                inner.innerHTML = `<span style="opacity:0.1; font-size:10px">${v}</span>`;
+                            } else {
+                                inner.innerText = v;
+                            }
+                            
+                            tile.appendChild(inner);
+                            this.container.appendChild(tile);
+                        }
+                    }
+                }
+            }
+
+            move(direction) {
+                let moved = false;
+                const vectors = { 0: {r:-1, c:0}, 1: {r:0, c:1}, 2: {r:1, c:0}, 3: {r:0, c:-1} };
+                const vector = vectors[direction];
+
+                const rows = direction === 2 ? [3,2,1,0] : [0,1,2,3];
+                const cols = direction === 1 ? [3,2,1,0] : [0,1,2,3];
+
+                let mergedPositions = new Set();
+
+                rows.forEach(r => {
+                    cols.forEach(c => {
+                        if (this.grid[r][c] === 0) return;
+                        let currR = r, currC = c;
+                        while(true) {
+                            let nextR = currR + vector.r, nextC = currC + vector.c;
+                            if (nextR < 0 || nextR >= 4 || nextC < 0 || nextC >= 4) break;
+                            if (this.grid[nextR][nextC] === 0) {
+                                this.grid[nextR][nextC] = this.grid[currR][currC];
+                                this.grid[currR][currC] = 0;
+                                currR = nextR; currC = nextC;
+                                moved = true;
+                            } else if (this.grid[nextR][nextC] === this.grid[currR][currC] && !mergedPositions.has(`${nextR},${nextC}`)) {
+                                this.grid[nextR][nextC] *= 2;
+                                this.score += this.grid[nextR][nextC];
+                                this.grid[currR][currC] = 0;
+                                mergedPositions.add(`${nextR},${nextC}`);
+                                moved = true;
+                                break;
+                            } else break;
+                        }
+                    });
+                });
+
+                if(moved) {
+                    this.addTile();
+                    this.draw();
+                    this.scoreEl.innerText = this.score;
+                    if(this.score > this.bestScore) {
+                        this.bestScore = this.score;
+                        this.bestEl.innerText = this.bestScore;
+                        localStorage.setItem('panda_best', this.bestScore);
+                    }
+                    if(this.isOver()) {
+                        document.getElementById('final-score-text').innerText = `SCORE: ${this.score}`;
+                        document.getElementById('game-over').classList.remove('hidden');
+                    }
+                }
+            }
+
+            isOver() {
+                for(let r=0; r<4; r++) {
+                    for(let c=0; c<4; c++) {
+                        if(!this.grid[r][c]) return false;
+                        if(c<3 && this.grid[r][c] === this.grid[r][c+1]) return false;
+                        if(r<3 && this.grid[r][c] === this.grid[r+1][c]) return false;
+                    }
+                }
+                return true;
+            }
+
+            setupControls() {
+                window.addEventListener('keydown', e => {
+                    const keys = { 'ArrowUp': 0, 'ArrowRight': 1, 'ArrowDown': 2, 'ArrowLeft': 3 };
+                    if(keys[e.key] !== undefined) { e.preventDefault(); this.move(keys[e.key]); }
+                });
+
+                let sx, sy;
+                document.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive:false});
+                document.addEventListener('touchend', e => {
+                    const dx = e.changedTouches[0].clientX - sx;
+                    const dy = e.changedTouches[0].clientY - sy;
+                    if(Math.max(Math.abs(dx), Math.abs(dy)) > 30) {
+                        if(Math.abs(dx) > Math.abs(dy)) this.move(dx > 0 ? 1 : 3);
+                        else this.move(dy > 0 ? 2 : 0);
+                    }
+                });
+            }
+
+            setupUploader() {
+                this.uploader.onchange = e => {
+                    const file = e.target.files[0];
+                    if(file && this.uploadTarget) {
+                        const reader = new FileReader();
+                        reader.onload = ev => {
+                            this.customImages[this.uploadTarget] = ev.target.result;
+                            localStorage.setItem('panda_images', JSON.stringify(this.customImages));
+                            this.renderMap();
+                            this.draw();
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                };
+            }
+
+            renderMap() {
+                const map = document.getElementById('evolution-map');
+                map.innerHTML = '';
+                [2,4,8,16,32,64,128,256,512,1024,2048].forEach(v => {
+                    const div = document.createElement('div');
+                    div.className = "w-full aspect-square rounded border border-gray-700 bg-cover bg-center cursor-pointer flex items-center justify-center text-[10px] font-bold overflow-hidden";
+                    const src = this.customImages[v] || IMAGE_SOURCES[v];
+                    if(src) div.style.backgroundImage = `url(${src})`;
+                    else {
+                        div.innerText = v;
+                        div.classList.add(`color-${v}`);
+                    }
+                    div.onclick = () => { this.uploadTarget = v; this.uploader.click(); };
+                    map.appendChild(div);
+                });
+            }
+        }
+
+        const game = new Game2048();
+    </script>
+</body>
+</html>
