@@ -266,7 +266,7 @@
             animation: fadeIn 0.2s ease-in-out;
         }
         .chat-prefix {
-            color: #81D4FA; /* 小队/队伍浅蓝色 */
+            color: #81D4FA; 
             font-weight: bold;
             margin-right: 5px;
         }
@@ -375,6 +375,78 @@
             background: #0f0;
             width: 100%;
         }
+
+        /* --- 移动端适配 (Mobile Adaptations) --- */
+        #game-canvas {
+            touch-action: none; 
+        }
+        
+        #mobile-controls {
+            display: none; 
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; 
+            z-index: 50;
+        }
+        .touch-zone { pointer-events: auto; position: absolute; }
+        
+        /* 摇杆 */
+        #joystick-area { 
+            bottom: 40px; left: 40px; width: 140px; height: 140px; 
+            background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; 
+        }
+        #joystick-knob { 
+            width: 60px; height: 60px; background: rgba(255,255,255,0.5); border-radius: 50%; 
+            position: absolute; top: 40px; left: 40px; pointer-events: none;
+        }
+        
+        /* 瞄准滑动区 */
+        #aim-area { top: 0; right: 0; width: 50%; height: 100%; }
+        
+        /* 移动端按键 */
+        .mobile-btn { 
+            position: absolute; pointer-events: auto; background: rgba(0,0,0,0.6); 
+            border: 2px solid rgba(255,255,255,0.4); color: white; border-radius: 50%; 
+            display: flex; justify-content: center; align-items: center; font-size: 24px; 
+            user-select: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5); overflow: hidden;
+        }
+        .mobile-btn:active { background: rgba(255,255,255,0.3); }
+        
+        #btn-fire { bottom: 40px; right: 40px; width: 90px; height: 90px; background: rgba(255,0,0,0.4); border-color: #ff5252;}
+        #btn-missile { bottom: 150px; right: 40px; width: 70px; height: 70px; background: rgba(255,152,0,0.4); border-color: #ff9800;}
+        #btn-sniper { bottom: 40px; right: 150px; width: 60px; height: 60px; }
+        
+        #btn-smoke { top: 20px; right: 90px; width: 50px; height: 50px; font-size: 18px;}
+        #btn-repair { top: 20px; right: 20px; width: 50px; height: 50px; font-size: 18px;}
+        #btn-radio { top: 20px; left: 20px; width: 50px; height: 50px; font-size: 18px;}
+        #btn-lrf { top: 80px; left: 20px; width: 50px; height: 50px; font-size: 16px; font-weight: bold;}
+
+        .m-ammo {
+            position: absolute; bottom: 5px; right: 5px; font-size: 12px; font-family: monospace;
+            font-weight: bold; text-shadow: 1px 1px 2px #000; pointer-events: none; z-index: 2;
+        }
+        .m-cooldown {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 0%;
+            background: rgba(255, 0, 0, 0.5); transition: height 0.1s linear; z-index: 1; pointer-events: none;
+        }
+
+        /* 移动端横屏UI重排 */
+        @media (max-width: 900px) and (orientation: landscape) {
+            #action-bar { display: none !important; } 
+            #player-hud { display: none !important; } 
+            #wt-status-panel { bottom: 180px; left: 20px; transform: scale(0.7); transform-origin: bottom left; }
+            #chat-feed { bottom: auto; top: 80px; left: 20px; font-size: 12px; }
+            #kill-feed { bottom: auto; top: 20px; right: 160px; font-size: 12px; }
+            .instructions { font-size: 14px; padding: 10px; margin-bottom: 15px;}
+            h1 { font-size: 32px; }
+        }
+        @media (max-width: 900px) and (orientation: portrait) {
+            #start-screen { justify-content: flex-start; padding-top: 20%; }
+            #start-screen::after {
+                content: "为了获得最佳体验，请旋转手机至横屏";
+                color: #ff9800; font-weight: bold; margin-top: 20px; font-size: 18px; text-align: center;
+            }
+        }
     </style>
 </head>
 <body>
@@ -418,8 +490,9 @@
                 </svg>
             </div>
             <div style="position: absolute; bottom: 25%; left: 52%; color: #0f0; font-family: monospace; font-size: 16px;">
-                LRF: 激光测距就绪<br>
-                MAG: 8.0x
+                <span id="lrf-text">LRF: 激光测距就绪</span><br>
+                MAG: 8.0x<br>
+                <span id="fcs-text" style="color: #81D4FA; display: none;">FCS: 已校准 (自动抬高)</span>
             </div>
         </div>
 
@@ -429,7 +502,6 @@
         <!-- 无线电消息菜单 -->
         <div id="radio-menu">
             <div class="radio-title">无线电消息</div>
-            <!-- 动态生成菜单项 -->
         </div>
 
         <!-- 战争雷霆风格：左下角坦克姿态状态栏 -->
@@ -479,6 +551,23 @@
 
         <div id="kill-feed"></div>
         <div id="enemy-huds"></div>
+        
+        <!-- 移动端虚拟按键 -->
+        <div id="mobile-controls">
+            <div id="aim-area" class="touch-zone"></div>
+            <div id="joystick-area" class="touch-zone">
+                <div id="joystick-knob"></div>
+            </div>
+            
+            <div id="btn-fire" class="mobile-btn">☄️<div class="m-ammo" id="m-ammo-gun-m"></div></div>
+            <div id="btn-missile" class="mobile-btn">🚀<div class="m-ammo" id="m-ammo-missile-m"></div><div class="m-cooldown" id="m-cd-missile-m"></div></div>
+            <div id="btn-sniper" class="mobile-btn">👁️</div>
+            
+            <div id="btn-smoke" class="mobile-btn">💨<div class="m-ammo" id="m-ammo-smoke-m"></div><div class="m-cooldown" id="m-cd-smoke-m"></div></div>
+            <div id="btn-repair" class="mobile-btn">🔧<div class="m-ammo" id="m-ammo-repair-m"></div><div class="m-cooldown" id="m-cd-repair-m"></div></div>
+            <div id="btn-radio" class="mobile-btn">📻</div>
+            <div id="btn-lrf" class="mobile-btn">LRF</div>
+        </div>
     </div>
 
     <div id="start-screen">
@@ -487,10 +576,12 @@
             <strong>操作指南：</strong><br>
             [W] [A] [S] [D] - 控制车体移动与转向<br>
             [鼠标移动] - 旋转视角与炮塔<br>
-            [鼠标左键] - 2A42 30mm 机炮 | [鼠标右键] - 9M120 "攻击" 导弹<br>
-            [G] - 释放烟雾弹遮挡视线 | [F] - 使用载具修理套件<br>
-            [Shift] - 切换 炮镜视角 | <strong>[T] - 打开无线电消息菜单</strong><br><br>
-            敌军为 M1 Abrams。消灭所有游荡的敌人！
+            <strong>[按住 C] - 自由视角，锁定炮塔朝向</strong><br>
+            [鼠标左键] - 2A42 机炮 | [鼠标右键] - 9M120 导弹<br>
+            [Q] - 激光测距与火控校准 (弹道补偿)<br>
+            [G] - 释放烟雾弹 | [F] - 修理套件<br>
+            [Shift] - 切换 炮镜视角 | [T] - 无线电消息<br><br>
+            全新起伏地形与环境光照！利用地形优势消灭敌人！
         </div>
         <button id="start-btn">点击进入战场</button>
     </div>
@@ -506,13 +597,52 @@
         let projectiles = [];
         let explosions = [];
         let smokeClouds = []; 
+        let fireClouds = []; // 新增：全局火焰粒子数组
         let buildings = [];
+        
+        let collidables = []; 
+        let destroyedTanks = []; // 新增：保存被摧毁坦克的数组，用于计算炮塔飞天与遗留残骸
         
         let lastTime = 0;
         let isGameRunning = false;
         
+        // --- 地形高度计算函数 (多重柏林噪声模拟) ---
+        function getTerrainHeight(x, z) {
+            // 限制在场地内
+            if (Math.abs(x) > 150 || Math.abs(z) > 150) return 0;
+            
+            // 叠加多个正弦波生成丘陵起伏
+            let h = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 6;
+            h += Math.sin(x * 0.01 + 1.0) * Math.cos(z * 0.015 + 2.0) * 12;
+            
+            // 将中心出生点附近逐渐压平，避免出生在陡坡
+            let distToCenter = Math.sqrt(x*x + z*z);
+            let flattenFactor = Math.max(0, Math.min(1, (distToCenter - 20) / 30));
+            
+            return h * flattenFactor;
+        }
+
+        // --- 天空穹顶渐变生成 ---
+        function createSkybox() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 256;
+            const context = canvas.getContext('2d');
+            const gradient = context.createLinearGradient(0, 0, 0, 256);
+            gradient.addColorStop(0, "#1e4877"); // 天顶深蓝
+            gradient.addColorStop(0.5, "#4584b4"); // 天空蓝
+            gradient.addColorStop(1, "#c6d8e6"); // 地平线泛白
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, 1, 256);
+            
+            const tex = new THREE.CanvasTexture(canvas);
+            scene.background = tex;
+            // 配合地形的轻微雾效，增加空间感
+            scene.fog = new THREE.FogExp2(0xc6d8e6, 0.0035); 
+        }
+
         // --- 无线电消息系统 ---
-        let currentRadioMenu = null; // null 表示关闭，'main', 'attack' 等表示层级
+        let currentRadioMenu = null; 
         const radioMessages = {
             main: [
                 { key: '1', text: '1 - 进攻！', next: 'attack' },
@@ -554,7 +684,6 @@
             }
             menuEl.style.display = 'flex';
             
-            // 保留 Title，移除旧选项
             menuEl.innerHTML = '<div class="radio-title">无线电消息</div>';
             
             const options = radioMessages[currentRadioMenu];
@@ -575,7 +704,6 @@
             el.innerHTML = `<span class="chat-prefix">[队伍] 玩家 (BMPT):</span> ${msg}`;
             feed.appendChild(el);
             
-            // 8秒后消息自动消失
             setTimeout(() => {
                 el.style.transition = 'opacity 1s';
                 el.style.opacity = '0';
@@ -615,20 +743,26 @@
             }, 1500);
         }
         
-        const keys = { w: false, a: false, s: false, d: false };
+        // 增加 C 键状态
+        const keys = { w: false, a: false, s: false, d: false, c: false };
         const mouse = { leftDown: false, rightDown: false };
         let cameraYaw = 0; 
         let cameraPitch = 0.2; 
         let isSniperMode = false; 
         
+        let isMobileMode = false;
+        let analogMove = 0; 
+        let analogTurn = 0;
+
         const PLAYER_MAX_HP = 2000;
         const ENEMY_MAX_HP = 200;
         const MISSILE_COOLDOWN = 2.5;
 
         function init() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87CEEB); 
-            scene.fog = new THREE.Fog(0x87CEEB, 50, 250); 
+            
+            // 初始化物理环境光与天空盒
+            createSkybox();
             
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
             
@@ -637,10 +771,13 @@
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-            scene.add(ambientLight);
+            // 物理正确的半球光 (HemisphereLight) 模拟全局 AO
+            const hemiLight = new THREE.HemisphereLight( 0xffffff, 0x444444, 0.65 );
+            hemiLight.position.set( 0, 200, 0 );
+            scene.add( hemiLight );
             
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            // 优化阴影和平行光
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
             dirLight.position.set(100, 150, 50);
             dirLight.castShadow = true;
             dirLight.shadow.camera.top = 150;
@@ -650,6 +787,7 @@
             dirLight.shadow.camera.far = 500;
             dirLight.shadow.mapSize.width = 2048;
             dirLight.shadow.mapSize.height = 2048;
+            dirLight.shadow.bias = -0.0005; // 消除阴影条纹伪影
             scene.add(dirLight);
 
             buildCity();
@@ -659,11 +797,17 @@
 
             spawnEnemies(8);
 
+            document.addEventListener('touchstart', () => {
+                if (!isMobileMode && window.innerWidth <= 900) {
+                    isMobileMode = true;
+                    setupMobileControls();
+                }
+            }, { once: true, passive: true });
+
             window.addEventListener('resize', onWindowResize);
             document.addEventListener('keydown', e => {
                 setKey(e.code, true);
                 if (isGameRunning) {
-                    // 无线电消息逻辑
                     if (e.code === 'KeyT') {
                         currentRadioMenu = currentRadioMenu ? null : 'main';
                         renderRadioMenu();
@@ -693,6 +837,9 @@
                     if (e.code === 'KeyG') {
                         if (player) player.useSmoke();
                     }
+                    if (e.code === 'KeyQ') {
+                        if (player) player.useLRF();
+                    }
                 }
             });
             document.addEventListener('keyup', e => setKey(e.code, false));
@@ -702,7 +849,7 @@
                 if(e.button === 0) mouse.leftDown = true;
                 if(e.button === 2) {
                     mouse.rightDown = true;
-                    player.fireMissile(); 
+                    if(player) player.fireMissile(); 
                 }
             });
             document.addEventListener('mouseup', (e) => {
@@ -712,7 +859,22 @@
 
             const startBtn = document.getElementById('start-btn');
             startBtn.addEventListener('click', () => {
-                document.body.requestPointerLock();
+                if (isMobileMode) {
+                    if (document.documentElement.requestFullscreen) {
+                        document.documentElement.requestFullscreen().catch(e=>console.log(e));
+                    }
+                    document.getElementById('start-screen').style.display = 'none';
+                    document.getElementById('ui-layer').style.display = 'block';
+                    document.getElementById('mobile-controls').style.display = 'block';
+                    
+                    if(!isGameRunning) {
+                        isGameRunning = true;
+                        lastTime = performance.now();
+                        animate(lastTime);
+                    }
+                } else {
+                    document.body.requestPointerLock();
+                }
             });
 
             document.addEventListener('pointerlockchange', () => {
@@ -739,6 +901,127 @@
                 }
             });
         }
+        
+        function setupMobileControls() {
+            const joyArea = document.getElementById('joystick-area');
+            const joyKnob = document.getElementById('joystick-knob');
+            let joyTouchId = null;
+            let joyCenterX = 0, joyCenterY = 0;
+            const maxRadius = 40;
+
+            joyArea.addEventListener('touchstart', e => {
+                e.preventDefault();
+                for (let i=0; i<e.changedTouches.length; i++) {
+                    if (joyTouchId === null) {
+                        joyTouchId = e.changedTouches[i].identifier;
+                        let rect = joyArea.getBoundingClientRect();
+                        joyCenterX = rect.left + rect.width / 2;
+                        joyCenterY = rect.top + rect.height / 2;
+                        updateJoystick(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+                    }
+                }
+            }, {passive: false});
+
+            joyArea.addEventListener('touchmove', e => {
+                e.preventDefault();
+                for (let i=0; i<e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === joyTouchId) {
+                        updateJoystick(e.changedTouches[i].clientX, e.changedTouches[i].clientY);
+                    }
+                }
+            }, {passive: false});
+
+            const resetJoystick = (e) => {
+                e.preventDefault();
+                for (let i=0; i<e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === joyTouchId) {
+                        joyTouchId = null;
+                        joyKnob.style.transform = `translate(0px, 0px)`;
+                        analogMove = 0;
+                        analogTurn = 0;
+                    }
+                }
+            };
+            joyArea.addEventListener('touchend', resetJoystick, {passive: false});
+            joyArea.addEventListener('touchcancel', resetJoystick, {passive: false});
+
+            function updateJoystick(clientX, clientY) {
+                let dx = clientX - joyCenterX;
+                let dy = clientY - joyCenterY;
+                let distance = Math.sqrt(dx*dx + dy*dy);
+                
+                if (distance > maxRadius) {
+                    dx = (dx/distance) * maxRadius;
+                    dy = (dy/distance) * maxRadius;
+                }
+                joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+                
+                analogMove = -(dy / maxRadius); 
+                analogTurn = -(dx / maxRadius); 
+            }
+
+            const aimArea = document.getElementById('aim-area');
+            let aimTouchId = null;
+            let lastAimX = 0, lastAimY = 0;
+
+            aimArea.addEventListener('touchstart', e => {
+                e.preventDefault();
+                for (let i=0; i<e.changedTouches.length; i++) {
+                    if (aimTouchId === null) {
+                        aimTouchId = e.changedTouches[i].identifier;
+                        lastAimX = e.changedTouches[i].clientX;
+                        lastAimY = e.changedTouches[i].clientY;
+                    }
+                }
+            }, {passive: false});
+
+            aimArea.addEventListener('touchmove', e => {
+                e.preventDefault();
+                if (!isGameRunning) return;
+                for (let i=0; i<e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === aimTouchId) {
+                        let dx = e.changedTouches[i].clientX - lastAimX;
+                        let dy = e.changedTouches[i].clientY - lastAimY;
+                        cameraYaw -= dx * 0.003;
+                        cameraPitch -= dy * 0.003;
+                        cameraPitch = Math.max(-Math.PI/4, Math.min(Math.PI/3, cameraPitch));
+                        lastAimX = e.changedTouches[i].clientX;
+                        lastAimY = e.changedTouches[i].clientY;
+                    }
+                }
+            }, {passive: false});
+
+            const resetAim = (e) => {
+                e.preventDefault();
+                for (let i=0; i<e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === aimTouchId) { aimTouchId = null; }
+                }
+            };
+            aimArea.addEventListener('touchend', resetAim, {passive: false});
+            aimArea.addEventListener('touchcancel', resetAim, {passive: false});
+
+            const bindBtn = (id, onDown, onUp) => {
+                const btn = document.getElementById(id);
+                btn.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); onDown(); }, {passive: false});
+                if (onUp) {
+                    btn.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); onUp(); }, {passive: false});
+                    btn.addEventListener('touchcancel', e => { e.preventDefault(); e.stopPropagation(); onUp(); }, {passive: false});
+                }
+            };
+
+            bindBtn('btn-fire', () => { if(isGameRunning) mouse.leftDown = true; }, () => mouse.leftDown = false);
+            bindBtn('btn-missile', () => { if(isGameRunning) { mouse.rightDown = true; if(player) player.fireMissile(); } }, () => mouse.rightDown = false);
+            bindBtn('btn-sniper', () => { if(isGameRunning) { isSniperMode = !isSniperMode; updateCameraMode(); } });
+            bindBtn('btn-smoke', () => { if(isGameRunning && player) player.useSmoke(); });
+            bindBtn('btn-repair', () => { if(isGameRunning && player) player.useRepair(); });
+            bindBtn('btn-radio', () => { 
+                if(isGameRunning) {
+                    currentRadioMenu = currentRadioMenu ? null : 'main';
+                    renderRadioMenu();
+                } 
+            });
+            bindBtn('btn-lrf', () => { if(isGameRunning && player) player.useLRF(); });
+        }
 
         function updateCameraMode() {
             if (isSniperMode) {
@@ -751,13 +1034,19 @@
             camera.updateProjectionMatrix();
         }
 
+        // ==========================================
+        // 核心坦克类: PBR 高精度与地形自适应
+        // ==========================================
         class Tank {
             constructor(x, z, maxHp, isPlayer) {
                 this.hp = maxHp;
                 this.maxHp = maxHp;
                 this.isPlayer = isPlayer;
                 this.mesh = new THREE.Group();
-                this.mesh.position.set(x, 0, z);
+                
+                // 初始生成在高度场上方
+                let startY = getTerrainHeight(x, z);
+                this.mesh.position.set(x, startY, z);
                 
                 this.velocity = 0;
                 this.speed = isPlayer ? 12 : 6;
@@ -767,93 +1056,192 @@
                 this.weaponPitch = 0; 
                 this.radius = 2.5; 
 
-                // BMPT(玩家) 为深绿色，M1 Abrams(敌人) 为沙漠涂装色
-                const hullColor = isPlayer ? 0x4b5320 : 0xc2b280; 
-                const hullMat = new THREE.MeshStandardMaterial({ color: hullColor, roughness: 0.8 });
-                const trackMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
+                this.isDestroyed = false; // 新增：损毁状态标记
+                this.turretVelocity = new THREE.Vector3(); // 新增：炮塔炸飞速度
+                this.turretRotVelocity = new THREE.Vector3(); // 新增：炮塔炸飞旋转动量
+
+                this.canMove = true;
+                this.canFire = true;
+                this.trackHp = isPlayer ? 400 : 60;
+                this.gunHp = isPlayer ? 400 : 60;
+
+                const hullColor = isPlayer ? 0x4a5d3e : 0xc2b280; 
+                
+                // 将材质改为实例属性，以便在销毁时可以独立变为焦黑色
+                this.armorMat = new THREE.MeshStandardMaterial({ 
+                    color: hullColor, roughness: 0.65, metalness: 0.3 
+                });
+                this.trackMat = new THREE.MeshStandardMaterial({ 
+                    color: 0x1a1a1a, roughness: 0.9, metalness: 0.1 
+                });
+                this.wheelMat = new THREE.MeshStandardMaterial({ 
+                    color: 0x2a2a2a, roughness: 0.7, metalness: 0.4 
+                });
+                this.gunMat = new THREE.MeshStandardMaterial({ 
+                    color: 0x181818, roughness: 0.5, metalness: 0.6 
+                });
+                this.opticsMat = new THREE.MeshStandardMaterial({ 
+                    color: 0x050505, roughness: 0.1, metalness: 0.9 
+                });
                 
                 this.hull = new THREE.Group();
+                this.hull.rotation.order = "YXZ"; 
                 
                 if (isPlayer) {
-                    // BMPT 玩家底盘
-                    const bodyGeo = new THREE.BoxGeometry(4, 1.5, 6);
-                    const body = new THREE.Mesh(bodyGeo, hullMat);
-                    body.position.y = 1.25;
-                    body.castShadow = true;
-                    body.receiveShadow = true;
+                    const bodyGeo = new THREE.BoxGeometry(3.6, 1.2, 5.0);
+                    const body = new THREE.Mesh(bodyGeo, this.armorMat);
+                    body.position.set(0, 1.2, -0.6); 
+                    body.castShadow = true; body.receiveShadow = true;
+                    body.userData = { type: 'hull', tank: this };
                     this.hull.add(body);
+
+                    const upperGlacisGeo = new THREE.BoxGeometry(3.6, 0.4, 3.0);
+                    const upperGlacis = new THREE.Mesh(upperGlacisGeo, this.armorMat);
+                    upperGlacis.position.set(0, 1.3, 2.4); 
+                    upperGlacis.rotation.x = Math.PI / 8; 
+                    upperGlacis.castShadow = true; upperGlacis.receiveShadow = true;
+                    upperGlacis.userData = { type: 'hull', tank: this };
+                    this.hull.add(upperGlacis);
+
+                    const lowerGlacisGeo = new THREE.BoxGeometry(3.6, 0.4, 1.0);
+                    const lowerGlacis = new THREE.Mesh(lowerGlacisGeo, this.armorMat);
+                    lowerGlacis.position.set(0, 0.48, 3.35);
+                    lowerGlacis.rotation.x = -Math.PI / 6; 
+                    lowerGlacis.castShadow = true; lowerGlacis.receiveShadow = true;
+                    lowerGlacis.userData = { type: 'hull', tank: this };
+                    this.hull.add(lowerGlacis);
                     
-                    const trackGeo = new THREE.BoxGeometry(0.8, 1.2, 6.2);
-                    const leftTrack = new THREE.Mesh(trackGeo, trackMat);
-                    leftTrack.position.set(-2.2, 0.6, 0);
-                    const rightTrack = new THREE.Mesh(trackGeo, trackMat);
-                    rightTrack.position.set(2.2, 0.6, 0);
-                    this.hull.add(leftTrack);
-                    this.hull.add(rightTrack);
+                    const trackGeo = new THREE.BoxGeometry(0.8, 1.1, 6.6);
+                    const skirtGeo = new THREE.BoxGeometry(0.9, 0.8, 6.6);
+                    for (let side of [-1, 1]) {
+                        let track = new THREE.Mesh(trackGeo, this.trackMat);
+                        track.position.set(side * 2.0, 0.6, 0);
+                        track.userData = { type: 'track', tank: this };
+                        this.hull.add(track);
+                        
+                        let skirt = new THREE.Mesh(skirtGeo, this.armorMat);
+                        skirt.position.set(side * 2.05, 1.3, 0);
+                        skirt.castShadow = true;
+                        skirt.userData = { type: 'track', tank: this };
+                        this.hull.add(skirt);
+
+                        for (let w = 0; w < 6; w++) {
+                            let wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.85, 16), this.wheelMat);
+                            wheel.rotation.z = Math.PI / 2;
+                            wheel.position.set(side * 2.0, 0.4, -2.2 + w * 0.88);
+                            wheel.userData = { type: 'track', tank: this }; 
+                            this.hull.add(wheel);
+                        }
+                    }
                 } else {
-                    // M1 Abrams 敌人底盘 (更长更宽)
-                    const bodyGeo = new THREE.BoxGeometry(4.2, 1.5, 7.5);
-                    const body = new THREE.Mesh(bodyGeo, hullMat);
-                    body.position.y = 1.25;
-                    body.castShadow = true;
-                    body.receiveShadow = true;
+                    const bodyGeo = new THREE.BoxGeometry(3.8, 1.3, 5.8);
+                    const body = new THREE.Mesh(bodyGeo, this.armorMat);
+                    body.position.set(0, 1.25, -0.7);
+                    body.castShadow = true; body.receiveShadow = true;
+                    body.userData = { type: 'hull', tank: this };
                     this.hull.add(body);
+
+                    const upperGlacis = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.4, 3.2), this.armorMat);
+                    upperGlacis.position.set(0, 1.36, 3.7);
+                    upperGlacis.rotation.x = Math.PI / 9; 
+                    upperGlacis.castShadow = true; upperGlacis.receiveShadow = true;
+                    upperGlacis.userData = { type: 'hull', tank: this };
+                    this.hull.add(upperGlacis);
+
+                    const lowerGlacis = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.4, 1.2), this.armorMat);
+                    lowerGlacis.position.set(0, 0.52, 4.68);
+                    lowerGlacis.rotation.x = -Math.PI / 6; 
+                    lowerGlacis.castShadow = true; lowerGlacis.receiveShadow = true;
+                    lowerGlacis.userData = { type: 'hull', tank: this };
+                    this.hull.add(lowerGlacis);
                     
                     const trackGeo = new THREE.BoxGeometry(0.9, 1.2, 7.8);
-                    const leftTrack = new THREE.Mesh(trackGeo, trackMat);
-                    leftTrack.position.set(-2.3, 0.6, 0);
-                    const rightTrack = new THREE.Mesh(trackGeo, trackMat);
-                    rightTrack.position.set(2.3, 0.6, 0);
-                    this.hull.add(leftTrack);
-                    this.hull.add(rightTrack);
+                    const skirtGeo = new THREE.BoxGeometry(1.0, 0.9, 7.8);
+                    for (let side of [-1, 1]) {
+                        let track = new THREE.Mesh(trackGeo, this.trackMat);
+                        track.position.set(side * 2.2, 0.6, 0);
+                        track.userData = { type: 'track', tank: this };
+                        this.hull.add(track);
+
+                        let skirt = new THREE.Mesh(skirtGeo, this.armorMat);
+                        skirt.position.set(side * 2.25, 1.4, 0);
+                        skirt.castShadow = true;
+                        skirt.userData = { type: 'track', tank: this };
+                        this.hull.add(skirt);
+
+                        for (let w = 0; w < 7; w++) {
+                            let wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.95, 16), this.wheelMat);
+                            wheel.rotation.z = Math.PI / 2;
+                            wheel.position.set(side * 2.2, 0.45, -2.8 + w * 0.93);
+                            wheel.userData = { type: 'track', tank: this };
+                            this.hull.add(wheel);
+                        }
+                    }
                 }
 
                 this.mesh.add(this.hull);
 
                 this.turret = new THREE.Group();
+                this.turret.rotation.order = "YXZ"; 
                 this.turret.position.y = 2.2;
                 
                 if (isPlayer) {
-                    // --- BMPT 炮塔 ---
-                    const turretBodyGeo = new THREE.BoxGeometry(2.5, 1.2, 3);
-                    const turretBody = new THREE.Mesh(turretBodyGeo, hullMat);
-                    turretBody.castShadow = true;
-                    this.turret.add(turretBody);
+                    const turretBase = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.4, 0.5, 16), this.armorMat);
+                    turretBase.position.y = -0.2;
+                    turretBase.castShadow = true;
+                    turretBase.userData = { type: 'turret', tank: this };
+                    this.turret.add(turretBase);
+
+                    const turretCenter = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.8, 2.5), this.armorMat);
+                    turretCenter.position.set(0, 0.4, 0);
+                    turretCenter.castShadow = true;
+                    turretCenter.userData = { type: 'turret', tank: this };
+                    this.turret.add(turretCenter);
+
+                    const optics = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.8), this.opticsMat);
+                    optics.position.set(0, 1.1, 0.5);
+                    optics.userData = { type: 'turret', tank: this };
+                    this.turret.add(optics);
 
                     this.weapons = new THREE.Group();
+                    this.weapons.position.set(0, 0.6, 0.5); 
                     this.turret.add(this.weapons);
 
-                    const gunMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
-                    const gunGeo = new THREE.CylinderGeometry(0.1, 0.15, 3, 8);
+                    const gunGeo = new THREE.CylinderGeometry(0.08, 0.12, 3.5, 8);
                     gunGeo.rotateX(Math.PI / 2); 
-                    
-                    const leftGun = new THREE.Mesh(gunGeo, gunMat);
-                    leftGun.position.set(-0.4, 0.2, 1.5);
-                    const rightGun = new THREE.Mesh(gunGeo, gunMat);
-                    rightGun.position.set(0.4, 0.2, 1.5);
-                    
-                    this.weapons.add(leftGun);
-                    this.weapons.add(rightGun);
+                    for (let side of [-1, 1]) {
+                        let gun = new THREE.Mesh(gunGeo, this.gunMat);
+                        gun.position.set(side * 0.25, 0, 1.5);
+                        gun.castShadow = true;
+                        gun.userData = { type: 'gun', tank: this };
+                        this.weapons.add(gun);
+                    }
 
                     this.muzzles = [new THREE.Object3D(), new THREE.Object3D()];
-                    this.muzzles[0].position.set(-0.4, 0.2, 3.0);
-                    this.muzzles[1].position.set(0.4, 0.2, 3.0);
+                    this.muzzles[0].position.set(-0.25, 0, 3.3);
+                    this.muzzles[1].position.set(0.25, 0, 3.3);
                     this.weapons.add(this.muzzles[0], this.muzzles[1]);
 
-                    const launcherGeo = new THREE.BoxGeometry(0.6, 0.8, 2);
-                    const launcherMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
-                    
-                    const leftLauncher = new THREE.Mesh(launcherGeo, launcherMat);
-                    leftLauncher.position.set(-1.6, 0.2, 0.5);
-                    const rightLauncher = new THREE.Mesh(launcherGeo, launcherMat);
-                    rightLauncher.position.set(1.6, 0.2, 0.5);
-                    
-                    this.weapons.add(leftLauncher);
-                    this.weapons.add(rightLauncher);
+                    const launcherGeo = new THREE.BoxGeometry(0.7, 0.9, 2.2);
+                    for (let side of [-1, 1]) {
+                        let launcher = new THREE.Mesh(launcherGeo, this.armorMat);
+                        launcher.position.set(side * 1.5, 0, 0);
+                        launcher.castShadow = true;
+                        launcher.userData = { type: 'gun', tank: this };
+                        this.weapons.add(launcher);
+                        
+                        for(let h of [-0.2, 0.2]) {
+                            let tube = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 2.3, 8), this.gunMat);
+                            tube.rotation.x = Math.PI/2;
+                            tube.position.set(side * 1.5, h, 0);
+                            tube.userData = { type: 'gun', tank: this };
+                            this.weapons.add(tube);
+                        }
+                    }
 
                     this.launcherMuzzles = [new THREE.Object3D(), new THREE.Object3D()];
-                    this.launcherMuzzles[0].position.set(-1.6, 0.2, 1.5);
-                    this.launcherMuzzles[1].position.set(1.6, 0.2, 1.5);
+                    this.launcherMuzzles[0].position.set(-1.5, 0, 1.2);
+                    this.launcherMuzzles[1].position.set(1.5, 0, 1.2);
                     this.weapons.add(this.launcherMuzzles[0], this.launcherMuzzles[1]);
                     
                     this.lastGunFire = 0;
@@ -867,55 +1255,95 @@
                     this.repairs = 3;
                     this.repairCooldown = 0;
                     this.MAX_REPAIR_COOLDOWN = 15;
-                    
                     this.ammoSmoke = 4;
                     this.smokeCooldown = 0;
                     this.MAX_SMOKE_COOLDOWN = 20;
-                } else {
-                    // --- M1 Abrams 炮塔 ---
-                    // 主体尾舱
-                    const turretGeo = new THREE.BoxGeometry(3.6, 1.3, 4.5);
-                    const turretBody = new THREE.Mesh(turretGeo, hullMat);
-                    turretBody.position.set(0, 0, -0.6); // 尾舱后凸
-                    turretBody.castShadow = true;
-                    this.turret.add(turretBody);
-
-                    // 脸颊装甲 (倾斜切角)
-                    const cheekGeo = new THREE.BoxGeometry(1.6, 1.3, 2);
-                    const leftCheek = new THREE.Mesh(cheekGeo, hullMat);
-                    leftCheek.position.set(-1.1, 0, 1.4);
-                    leftCheek.rotation.y = -Math.PI / 5; // 倾斜
-                    leftCheek.castShadow = true;
-                    this.turret.add(leftCheek);
                     
-                    const rightCheek = new THREE.Mesh(cheekGeo, hullMat);
-                    rightCheek.position.set(1.1, 0, 1.4);
-                    rightCheek.rotation.y = Math.PI / 5;
-                    rightCheek.castShadow = true;
-                    this.turret.add(rightCheek);
-
-                    // 120mm 主炮与抽烟器
+                } else {
                     this.weapons = new THREE.Group();
+                    this.weapons.position.set(0, 0.4, 0.8);
                     this.turret.add(this.weapons);
 
-                    const gunGeo = new THREE.CylinderGeometry(0.12, 0.15, 4.5, 8);
-                    gunGeo.rotateX(Math.PI / 2);
-                    const gun = new THREE.Mesh(gunGeo, new THREE.MeshStandardMaterial({ color: 0x444444 }));
-                    gun.position.set(0, 0, 2.25);
+                    const turretBody = new THREE.Mesh(new THREE.BoxGeometry(3.6, 1.4, 4.0), this.armorMat);
+                    turretBody.position.set(0, 0.5, -0.8); 
+                    turretBody.castShadow = true;
+                    turretBody.userData = { type: 'turret', tank: this };
+                    this.turret.add(turretBody);
+
+                    const cheekGeo = new THREE.BoxGeometry(1.8, 1.4, 2.5);
+                    for(let side of [-1, 1]) {
+                        let cheek = new THREE.Mesh(cheekGeo, this.armorMat);
+                        cheek.position.set(side * 1.0, 0.5, 1.2);
+                        cheek.rotation.y = side * (Math.PI / 5); 
+                        cheek.rotation.x = -Math.PI / 16;
+                        cheek.castShadow = true;
+                        cheek.userData = { type: 'turret', tank: this };
+                        this.turret.add(cheek);
+                    }
+
+                    const cupola = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.4, 16), this.armorMat);
+                    cupola.position.set(0.8, 1.3, -0.5);
+                    cupola.userData = { type: 'turret', tank: this };
+                    this.turret.add(cupola);
+
+                    const gunBody = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 5.0, 12), this.gunMat);
+                    gunBody.rotateX(Math.PI / 2);
+                    gunBody.position.set(0, 0, 2.5);
+                    gunBody.castShadow = true;
+                    gunBody.userData = { type: 'gun', tank: this };
                     
-                    const fumeGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.9, 8);
-                    fumeGeo.rotateX(Math.PI / 2);
-                    const fumeMesh = new THREE.Mesh(fumeGeo, hullMat);
-                    fumeMesh.position.set(0, 0, 1.5); // 炮管中段的加粗抽烟器
+                    const fumeMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 1.2, 12), this.armorMat);
+                    fumeMesh.rotateX(Math.PI / 2);
+                    fumeMesh.position.set(0, 0, 1.6); 
+                    fumeMesh.userData = { type: 'gun', tank: this };
                     
-                    this.weapons.add(gun);
+                    const mantlet = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 1.0), this.armorMat);
+                    mantlet.position.set(0, 0, 0.2);
+                    mantlet.userData = { type: 'turret', tank: this };
+
+                    this.weapons.add(gunBody);
                     this.weapons.add(fumeMesh);
+                    this.weapons.add(mantlet);
                     
                     this.lastFire = 0;
                     this.fireRate = 2.0; 
                 }
 
                 this.mesh.add(this.turret);
+                collidables.push(this.hull, this.turret);
+            }
+
+            handleHit(hitObject, damage, isMissile) {
+                let type = hitObject.userData.type || 'hull';
+                let msg = "";
+                let killed = false;
+
+                if (type === 'track') {
+                    this.trackHp -= damage;
+                    if (this.trackHp <= 0 && this.canMove) {
+                        this.canMove = false;
+                        msg = "履带被毁！";
+                    }
+                    this.hp -= damage * 0.6; 
+                } else if (type === 'gun') {
+                    this.gunHp -= damage;
+                    if (this.gunHp <= 0 && this.canFire) {
+                        this.canFire = false;
+                        msg = "炮管被毁！";
+                    }
+                    this.hp -= damage * 0.6;
+                } else if (type === 'turret') {
+                    this.hp -= damage * 0.9; 
+                } else {
+                    this.hp -= damage;
+                }
+
+                if (this.hp <= 0) {
+                    killed = true;
+                    this.destroy();
+                }
+
+                return { killed, msg };
             }
 
             takeDamage(amount) {
@@ -928,40 +1356,116 @@
             }
 
             destroy() {
-                createExplosion(this.mesh.position.clone(), 5);
-                scene.remove(this.mesh);
+                if (this.isDestroyed) return;
+                this.isDestroyed = true;
+                
+                // 弹药殉爆：生成大型球状爆炸和短暂的高温火焰喷发，而不是持久的烟雾
+                createExplosion(this.mesh.position.clone(), 8);
+                fireClouds.push(new FireCloud(this.mesh.position.clone()));
+
+                // 将所有组件材质变为彻底烧焦的灰黑色
+                this.armorMat.color.setHex(0x151515);
+                this.armorMat.roughness = 0.95;
+                this.armorMat.metalness = 0.05;
+                this.trackMat.color.setHex(0x0f0f0f);
+                this.wheelMat.color.setHex(0x0f0f0f);
+                this.gunMat.color.setHex(0x111111);
+                this.opticsMat.color.setHex(0x000000);
+
+                // --- 物理效果：炮塔飞天 (Jack-in-the-box) ---
+                // 获取当前世界坐标，并将炮塔从车体上解绑放入世界坐标系
+                this.turret.getWorldPosition(this.turret.position);
+                this.turret.getWorldQuaternion(this.turret.quaternion);
+                scene.attach(this.turret);
+                
+                // 给炮塔施加强烈的爆炸冲量与旋转力矩 (大幅降低初速度，增加沉重感)
+                this.turretVelocity.set(
+                    (Math.random() - 0.5) * 6, 
+                    8 + Math.random() * 6, // 降低垂直炸飞高度
+                    (Math.random() - 0.5) * 6
+                );
+                this.turretRotVelocity.set(
+                    (Math.random() - 0.5) * 3, 
+                    (Math.random() - 0.5) * 3, 
+                    (Math.random() - 0.5) * 3
+                );
+
+                // 推入残骸系统列表
+                destroyedTanks.push(this);
+                
+                // 注：故意不使用 scene.remove() 和 collidables 移除
+                // 让燃烧的底盘和落地的炮塔成为永久的物理阻挡物掩体！
             }
 
             checkBuildingCollision(newPos) {
+                // 判断建筑几何体碰撞 (现在需要结合地形高度)
                 for (let b of buildings) {
-                    let closestX = Math.max(b.minX, Math.min(newPos.x, b.maxX));
-                    let closestZ = Math.max(b.minZ, Math.min(newPos.z, b.maxZ));
-                    
-                    let distanceX = newPos.x - closestX;
-                    let distanceZ = newPos.z - closestZ;
-                    
-                    if ((distanceX * distanceX + distanceZ * distanceZ) < (this.radius * this.radius)) {
+                    if (newPos.x > b.minX && newPos.x < b.maxX && newPos.z > b.minZ && newPos.z < b.maxZ) {
                         return true; 
                     }
                 }
+                // 边界碰撞
+                if(Math.abs(newPos.x) > 145 || Math.abs(newPos.z) > 145) return true;
                 return false;
+            }
+            
+            // --- 动态地形法线对齐核心逻辑 ---
+            applyTerrainAlignment(dt) {
+                let currentH = getTerrainHeight(this.mesh.position.x, this.mesh.position.z);
+                
+                // 平滑重力吸附
+                this.mesh.position.y += (currentH - this.mesh.position.y) * 15 * dt;
+
+                // 多点采样计算地形斜率
+                let sDist = 2.5; 
+                let fX = this.mesh.position.x + Math.sin(this.hullYaw) * sDist;
+                let fZ = this.mesh.position.z + Math.cos(this.hullYaw) * sDist;
+                let bX = this.mesh.position.x - Math.sin(this.hullYaw) * sDist;
+                let bZ = this.mesh.position.z - Math.cos(this.hullYaw) * sDist;
+                let hFront = getTerrainHeight(fX, fZ);
+                let hBack  = getTerrainHeight(bX, bZ);
+                let targetPitch = Math.atan2(hFront - hBack, sDist * 2);
+
+                let rDist = 1.5;
+                let rX = this.mesh.position.x + Math.cos(this.hullYaw) * rDist;
+                let rZ = this.mesh.position.z - Math.sin(this.hullYaw) * rDist;
+                let lX = this.mesh.position.x - Math.cos(this.hullYaw) * rDist;
+                let lZ = this.mesh.position.z + Math.sin(this.hullYaw) * rDist;
+                let hRight = getTerrainHeight(rX, rZ);
+                let hLeft  = getTerrainHeight(lX, lZ);
+                let targetRoll = Math.atan2(hLeft - hRight, rDist * 2);
+
+                // 平滑过渡，应用到车体和炮塔的 X(Pitch) 与 Z(Roll)
+                let alignSpeed = 8 * dt;
+                this.hull.rotation.x += (-targetPitch - this.hull.rotation.x) * alignSpeed;
+                this.hull.rotation.z += (targetRoll - this.hull.rotation.z) * alignSpeed;
+                this.turret.rotation.x = this.hull.rotation.x;
+                this.turret.rotation.z = this.hull.rotation.z;
             }
         }
 
         class PlayerTank extends Tank {
             constructor(x, z) {
                 super(x, z, PLAYER_MAX_HP, true);
+                this.isRanging = false;
+                this.currentRangedDist = 0;
+                this.lockedGunDir = new THREE.Vector3(0, 0, 1);
             }
 
             useRepair() {
-                if (this.repairs > 0 && this.repairCooldown <= 0 && this.hp < this.maxHp) {
+                if (this.repairs > 0 && this.repairCooldown <= 0 && (this.hp < this.maxHp || !this.canMove || !this.canFire)) {
                     this.hp = Math.min(this.maxHp, this.hp + 800);
+                    this.trackHp = 400;
+                    this.gunHp = 400;
+                    this.canMove = true;
+                    this.canFire = true;
+                    
                     this.repairs--;
                     this.repairCooldown = this.MAX_REPAIR_COOLDOWN;
                     
                     const feed = document.getElementById('kill-feed');
                     const el = document.createElement('div');
-                    el.innerText = "车体已修复 (+800 HP)";
+                    el.innerText = "车体及受损模块已修复 (+800 HP)";
                     el.style.color = "#4CAF50";
                     feed.appendChild(el);
                     setTimeout(() => { el.remove(); }, 3000);
@@ -973,7 +1477,6 @@
                     this.ammoSmoke--;
                     this.smokeCooldown = this.MAX_SMOKE_COOLDOWN;
                     
-                    // 在坦克四周生成一圈烟雾云
                     let spawnPos = this.mesh.position.clone();
                     smokeClouds.push(new SmokeCloud(spawnPos));
                     
@@ -986,15 +1489,86 @@
                 }
             }
 
-            update(dt) {
-                // 1. 车体移动逻辑
-                let moveInput = 0;
-                if (keys.w) moveInput += 1;
-                if (keys.s) moveInput -= 1;
+            useLRF() {
+                if (this.isRanging) return;
                 
+                let dirY = Math.sin(cameraPitch);
+                if (dirY > 0.4) {
+                     this.currentRangedDist = 0;
+                     document.getElementById('lrf-text').innerText = `LRF: 激光测距就绪`;
+                     document.getElementById('fcs-text').style.display = 'none';
+                     return;
+                }
+
+                this.isRanging = true;
+                document.getElementById('lrf-text').innerText = "LRF: 测距中...";
+                document.getElementById('fcs-text').style.display = 'none';
+                
+                setTimeout(() => {
+                    this.isRanging = false;
+                    if (!player || player.hp <= 0) return;
+                    
+                    let raycaster = new THREE.Raycaster();
+                    let dirX = Math.sin(cameraYaw) * Math.cos(cameraPitch);
+                    let dirY = Math.sin(cameraPitch);
+                    let dirZ = Math.cos(cameraYaw) * Math.cos(cameraPitch);
+                    let aimDir = new THREE.Vector3(dirX, dirY, dirZ).normalize();
+                    
+                    let origin = camera.position.clone();
+                    raycaster.set(origin, aimDir);
+                    
+                    let intersects = raycaster.intersectObjects(collidables, true);
+                    
+                    let hit = intersects.find(i => {
+                        let obj = i.object;
+                        while(obj) {
+                            if (obj.userData && obj.userData.tank) {
+                                if(obj.userData.tank === player) return false;
+                                break;
+                            }
+                            obj = obj.parent;
+                        }
+                        return true;
+                    });
+                    
+                    if (hit) {
+                        let dist = hit.distance;
+                        document.getElementById('lrf-text').innerText = `LRF: ${Math.floor(dist)} m`;
+                        this.currentRangedDist = dist; 
+                        document.getElementById('fcs-text').style.display = 'block'; 
+                        
+                        const feed = document.getElementById('kill-feed');
+                        const el = document.createElement('div');
+                        el.innerText = `测距完成: ${Math.floor(dist)}米，火控已校准`;
+                        el.style.color = "#81D4FA";
+                        feed.appendChild(el);
+                        setTimeout(() => { el.remove(); }, 3000);
+                        
+                    } else {
+                        document.getElementById('lrf-text').innerText = `LRF: > 9999 m`;
+                        this.currentRangedDist = 0;
+                    }
+                }, 800);
+            }
+
+            update(dt) {
+                let moveInput = 0;
                 let turnInput = 0;
-                if (keys.a) turnInput += 1;
-                if (keys.d) turnInput -= 1;
+                
+                if (this.canMove) {
+                    moveInput = analogMove !== 0 ? analogMove : 0;
+                    if (analogMove === 0) {
+                        if (keys.w) moveInput += 1;
+                        if (keys.s) moveInput -= 1;
+                    }
+                    turnInput = analogTurn !== 0 ? analogTurn : 0;
+                    if (analogTurn === 0) {
+                        if (keys.a) turnInput += 1;
+                        if (keys.d) turnInput -= 1;
+                    }
+                } else {
+                    this.velocity *= 0.9;
+                }
 
                 if (moveInput !== 0) {
                     this.hullYaw += turnInput * this.turnSpeed * dt * Math.sign(moveInput);
@@ -1012,23 +1586,33 @@
                     if (!this.checkBuildingCollision(new THREE.Vector3(newX, this.mesh.position.y, this.mesh.position.z))) this.mesh.position.x = newX;
                     if (!this.checkBuildingCollision(new THREE.Vector3(this.mesh.position.x, this.mesh.position.y, newZ))) this.mesh.position.z = newZ;
                 }
+                
+                // 动态地形贴合
+                this.applyTerrainAlignment(dt);
 
-                // 2. 鼠标意图计算与相机位置更新
                 let dirX = Math.sin(cameraYaw) * Math.cos(cameraPitch);
                 let dirY = Math.sin(cameraPitch);
                 let dirZ = Math.cos(cameraYaw) * Math.cos(cameraPitch);
-                let camDir = new THREE.Vector3(dirX, dirY, dirZ).normalize();
+                let realAimDir = new THREE.Vector3(dirX, dirY, dirZ).normalize();
 
-                let realAimDir;
                 let rayOrigin;
 
                 if (!isSniperMode) {
+                    let camViewPitch = cameraPitch - 0.15; 
+                    let camDirX = Math.sin(cameraYaw) * Math.cos(camViewPitch);
+                    let camDirY = Math.sin(camViewPitch);
+                    let camDirZ = Math.cos(cameraYaw) * Math.cos(camViewPitch);
+                    let camDir = new THREE.Vector3(camDirX, camDirY, camDirZ).normalize();
+
                     let focusPoint = new THREE.Vector3(this.mesh.position.x, this.mesh.position.y + 2.5, this.mesh.position.z);
                     let camDistance = 15;
                     camera.position.x = focusPoint.x - camDir.x * camDistance;
                     camera.position.y = focusPoint.y - camDir.y * camDistance;
                     camera.position.z = focusPoint.z - camDir.z * camDistance;
-                    if (camera.position.y < 0.5) camera.position.y = 0.5;
+                    
+                    // 相机地形防穿模保护
+                    let camTerrainH = getTerrainHeight(camera.position.x, camera.position.z);
+                    if (camera.position.y < camTerrainH + 0.5) camera.position.y = camTerrainH + 0.5;
 
                     let targetPoint = new THREE.Vector3(
                         camera.position.x + camDir.x * 100,
@@ -1038,38 +1622,50 @@
                     camera.lookAt(targetPoint);
                     camera.updateMatrixWorld(); 
 
-                    let vector = new THREE.Vector3(0, 0.3, 0.5); 
-                    vector.unproject(camera);
-                    realAimDir = vector.sub(camera.position).normalize();
                     rayOrigin = camera.position;
                 } else {
-                    realAimDir = camDir;
                     let turretPos = new THREE.Vector3();
                     this.turret.getWorldPosition(turretPos);
                     rayOrigin = turretPos;
                 }
 
-                // 3. 炮塔稳定器与机械随动
-                let sightHitPoint = rayOrigin.clone().add(realAimDir.clone().multiplyScalar(300));
-                
                 let turretPos = new THREE.Vector3();
                 this.turret.getWorldPosition(turretPos);
-                let gunDir = sightHitPoint.clone().sub(turretPos).normalize();
+                
+                let gunDir;
+                if (!keys.c) {
+                    let sightHitPoint = rayOrigin.clone().add(realAimDir.clone().multiplyScalar(300));
+                    gunDir = sightHitPoint.clone().sub(turretPos).normalize();
+                    this.lockedGunDir.copy(gunDir);
+                } else {
+                    gunDir = this.lockedGunDir;
+                }
 
                 let targetWorldYaw = Math.atan2(gunDir.x, gunDir.z);
-                
                 let diffYaw = targetWorldYaw - this.turretYaw;
                 while (diffYaw > Math.PI) diffYaw -= Math.PI * 2;
                 while (diffYaw < -Math.PI) diffYaw += Math.PI * 2;
                 
                 let turretTurnSpeed = 1.5; 
                 this.turretYaw += Math.sign(diffYaw) * Math.min(Math.abs(diffYaw), turretTurnSpeed * dt);
-                
                 this.turret.rotation.y = this.turretYaw;
 
-                // 武器组俯仰 (Pitch)
-                let clampedY = Math.max(-1, Math.min(1, gunDir.y)); 
-                let targetPitch = Math.asin(clampedY);
+                // 计算相对于地形俯仰后的真实武器相对Pitch
+                // 将世界坐标的瞄准向量转换到炮塔本地坐标系
+                let inverseTurretQuat = this.turret.getWorldQuaternion(new THREE.Quaternion()).invert();
+                let localGunDir = gunDir.clone().applyQuaternion(inverseTurretQuat);
+                let targetPitch = Math.asin(Math.max(-1, Math.min(1, localGunDir.y)));
+                
+                if (this.currentRangedDist > 0) {
+                    let v = 400; 
+                    let g = 9.8; 
+                    let val = (this.currentRangedDist * g) / (v * v);
+                    if(val <= 1) {
+                        let zeroAngle = 0.5 * Math.asin(val);
+                        targetPitch += zeroAngle; 
+                    }
+                }
+
                 targetPitch = Math.max(-0.15, Math.min(0.6, targetPitch)); 
                 let diffPitch = targetPitch - this.weaponPitch;
                 let weaponPitchSpeed = 1.2;
@@ -1082,16 +1678,16 @@
                 let mouseAimEl = document.getElementById('mouse-aim');
                 let crosshairEl = document.getElementById('crosshair');
 
-                // 4. 第一人称相机跟随与 UI 投射
                 if (isSniperMode) {
                     camera.position.x = turretPos.x + actualGunDir.x * 2.0;
                     camera.position.y = turretPos.y + 0.8 + actualGunDir.y * 2.0;
                     camera.position.z = turretPos.z + actualGunDir.z * 2.0;
 
+                    let lookDir = keys.c ? realAimDir : actualGunDir;
                     let lookAtPoint = new THREE.Vector3(
-                        camera.position.x + actualGunDir.x * 100,
-                        camera.position.y + actualGunDir.y * 100,
-                        camera.position.z + actualGunDir.z * 100
+                        camera.position.x + lookDir.x * 100,
+                        camera.position.y + lookDir.y * 100,
+                        camera.position.z + lookDir.z * 100
                     );
                     camera.lookAt(lookAtPoint);
 
@@ -1110,9 +1706,17 @@
                     }
 
                 } else {
-                    mouseAimEl.style.display = 'block';
-                    mouseAimEl.style.left = `50%`;
-                    mouseAimEl.style.top = `35%`;
+                    let intentTarget = new THREE.Vector3();
+                    intentTarget.copy(camera.position).add(realAimDir.clone().multiplyScalar(100));
+                    intentTarget.project(camera);
+                    
+                    if (intentTarget.z < 1) {
+                        mouseAimEl.style.display = 'block';
+                        mouseAimEl.style.left = `${(intentTarget.x * 0.5 + 0.5) * window.innerWidth}px`;
+                        mouseAimEl.style.top = `${(intentTarget.y * -0.5 + 0.5) * window.innerHeight}px`;
+                    } else {
+                        mouseAimEl.style.display = 'none';
+                    }
                     
                     let crosshairTarget = new THREE.Vector3();
                     let muzzlePos = new THREE.Vector3();
@@ -1129,33 +1733,50 @@
                     }
                 }
 
-                // 5. 开火与冷却状态更新
-                if (mouse.leftDown) this.fireAutocannon(dt);
+                if (mouse.leftDown && this.canFire) this.fireAutocannon(dt);
                 
                 if (this.missileCooldownTimer > 0) this.missileCooldownTimer -= dt;
                 if (this.repairCooldown > 0) this.repairCooldown -= dt;
                 if (this.smokeCooldown > 0) this.smokeCooldown -= dt;
 
-                // 6. UI 更新
                 if (this.missileCooldownTimer > 0) {
                     let mp = (this.missileCooldownTimer / MISSILE_COOLDOWN) * 100;
                     document.getElementById('ui-cooldown-missile').style.height = mp + '%';
-                } else { document.getElementById('ui-cooldown-missile').style.height = '0%'; }
+                    if(isMobileMode) document.getElementById('m-cd-missile-m').style.height = mp + '%';
+                } else { 
+                    document.getElementById('ui-cooldown-missile').style.height = '0%'; 
+                    if(isMobileMode) document.getElementById('m-cd-missile-m').style.height = '0%';
+                }
                 
                 if (this.repairCooldown > 0) {
                     let rp = (this.repairCooldown / this.MAX_REPAIR_COOLDOWN) * 100;
                     document.getElementById('ui-cooldown-repair').style.height = rp + '%';
-                } else { document.getElementById('ui-cooldown-repair').style.height = '0%'; }
+                    if(isMobileMode) document.getElementById('m-cd-repair-m').style.height = rp + '%';
+                } else { 
+                    document.getElementById('ui-cooldown-repair').style.height = '0%'; 
+                    if(isMobileMode) document.getElementById('m-cd-repair-m').style.height = '0%';
+                }
                 
                 if (this.smokeCooldown > 0) {
                     let sp = (this.smokeCooldown / this.MAX_SMOKE_COOLDOWN) * 100;
                     document.getElementById('ui-cooldown-smoke').style.height = sp + '%';
-                } else { document.getElementById('ui-cooldown-smoke').style.height = '0%'; }
+                    if(isMobileMode) document.getElementById('m-cd-smoke-m').style.height = sp + '%';
+                } else { 
+                    document.getElementById('ui-cooldown-smoke').style.height = '0%'; 
+                    if(isMobileMode) document.getElementById('m-cd-smoke-m').style.height = '0%';
+                }
 
                 document.getElementById('ui-ammo-gun').innerText = this.ammoGun;
                 document.getElementById('ui-ammo-missile').innerText = this.ammoMissile;
                 document.getElementById('ui-ammo-repair').innerText = this.repairs;
                 document.getElementById('ui-ammo-smoke').innerText = this.ammoSmoke;
+                
+                if(isMobileMode) {
+                    document.getElementById('m-ammo-gun-m').innerText = this.ammoGun;
+                    document.getElementById('m-ammo-missile-m').innerText = this.ammoMissile;
+                    document.getElementById('m-ammo-repair-m').innerText = this.repairs;
+                    document.getElementById('m-ammo-smoke-m').innerText = this.ammoSmoke;
+                }
 
                 let uiHullAngle = (this.hullYaw - cameraYaw) * (180 / Math.PI);
                 let uiTurretAngle = (this.turretYaw - cameraYaw) * (180 / Math.PI);
@@ -1164,19 +1785,27 @@
                 hullEl.style.transform = `rotate(${uiHullAngle}deg)`;
                 turretEl.style.transform = `rotate(${uiTurretAngle}deg)`;
 
+                let hullColor = this.canMove ? '#4CAF50' : '#F44336';
+                let turretColor = this.canFire ? '#4CAF50' : '#F44336';
+                
                 let hpPercent = this.hp / this.maxHp;
-                let statusColor = '#4CAF50'; 
-                if (hpPercent < 0.3) statusColor = '#F44336'; 
-                else if (hpPercent < 0.7) statusColor = '#FFEB3B'; 
-                hullEl.style.borderColor = statusColor;
-                turretEl.style.borderColor = statusColor;
-                document.styleSheets[0].insertRule(`#wt-turret::before { background-color: ${statusColor} !important; }`, document.styleSheets[0].cssRules.length);
+                if (hpPercent < 0.3) { 
+                    hullColor = '#F44336'; turretColor = '#F44336'; 
+                } else if (hpPercent < 0.7) { 
+                    if(this.canMove) hullColor = '#FFEB3B'; 
+                    if(this.canFire) turretColor = '#FFEB3B'; 
+                } 
+
+                hullEl.style.borderColor = hullColor;
+                turretEl.style.borderColor = turretColor;
+                document.styleSheets[0].insertRule(`#wt-turret::before { background-color: ${turretColor} !important; }`, document.styleSheets[0].cssRules.length);
 
                 let speedKmh = Math.abs(this.velocity * 3.6);
                 document.getElementById('wt-speed').innerText = `${Math.floor(speedKmh)} km/h`;
             }
 
             fireAutocannon() {
+                if (!this.canFire) return; 
                 let now = performance.now() / 1000;
                 if (now - this.lastGunFire > this.gunCooldown && this.ammoGun > 0) {
                     this.lastGunFire = now;
@@ -1189,12 +1818,13 @@
                     let spawnPos = new THREE.Vector3();
                     this.muzzles[muzzleIndex].getWorldPosition(spawnPos);
                     
-                    projectiles.push(new Projectile(spawnPos, fireDir, 100, 15, true, 0xffff00, 0.4));
+                    projectiles.push(new Projectile(spawnPos, fireDir, 400, 30, true, 0xffff00, 0.4));
                     this.gunSide *= -1; 
                 }
             }
 
             fireMissile() {
+                if (!this.canFire) return;
                 if (this.missileCooldownTimer <= 0 && this.ammoMissile > 0) {
                     this.missileCooldownTimer = MISSILE_COOLDOWN;
                     this.ammoMissile--;
@@ -1206,7 +1836,7 @@
                     let spawnPos = new THREE.Vector3();
                     this.launcherMuzzles[muzzleIndex].getWorldPosition(spawnPos);
                     
-                    projectiles.push(new Projectile(spawnPos, fireDir, 40, 150, true, 0xff3300, 0.5, true));
+                    projectiles.push(new Projectile(spawnPos, fireDir, 80, 150, true, 0xff3300, 0.5, true));
                 }
             }
         }
@@ -1227,11 +1857,10 @@
             }
 
             getRandomPosition() {
-                return new THREE.Vector3(
-                    (Math.random() - 0.5) * 180,
-                    0,
-                    (Math.random() - 0.5) * 180
-                );
+                // 确保目标点在地图范围内
+                let x = (Math.random() - 0.5) * 250;
+                let z = (Math.random() - 0.5) * 250;
+                return new THREE.Vector3(x, 0, z);
             }
 
             update(dt) {
@@ -1246,58 +1875,31 @@
                     this.targetPos = this.getRandomPosition();
                 }
 
-                let dirToTarget;
-                if (this.state === 'attack') {
-                    dirToTarget = player.mesh.position.clone().sub(this.mesh.position);
-                    this.velocity = 0; 
+                if (!this.canMove) {
+                    this.velocity *= 0.9;
                 } else {
-                    dirToTarget = this.targetPos.clone().sub(this.mesh.position);
-                    if (dirToTarget.length() < 5) {
-                        this.targetPos = this.getRandomPosition();
+                    let dirToTarget;
+                    if (this.state === 'attack') {
+                        dirToTarget = player.mesh.position.clone().sub(this.mesh.position);
+                        this.velocity = 0; 
+                    } else {
+                        dirToTarget = this.targetPos.clone().sub(this.mesh.position);
+                        if (dirToTarget.length() < 5) {
+                            this.targetPos = this.getRandomPosition();
+                        }
+                        this.velocity = this.speed;
                     }
-                    this.velocity = this.speed;
+
+                    let targetAngle = Math.atan2(dirToTarget.x, dirToTarget.z);
+                    let angleDiff = targetAngle - this.hullYaw;
+                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                    
+                    this.hullYaw += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), this.turnSpeed * dt);
+                    this.hull.rotation.y = this.hullYaw;
                 }
 
-                let targetAngle = Math.atan2(dirToTarget.x, dirToTarget.z);
-                let angleDiff = targetAngle - this.hullYaw;
-                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-                
-                this.hullYaw += Math.sign(angleDiff) * Math.min(Math.abs(angleDiff), this.turnSpeed * dt);
-                this.hull.rotation.y = this.hullYaw;
-
-                if (this.state === 'attack') {
-                    let turretWorldAngle = Math.atan2(player.mesh.position.x - this.mesh.position.x, player.mesh.position.z - this.mesh.position.z);
-                    let diff = turretWorldAngle - this.turretYaw;
-                    while (diff > Math.PI) diff -= Math.PI * 2;
-                    while (diff < -Math.PI) diff += Math.PI * 2;
-                    this.turretYaw += Math.sign(diff) * Math.min(Math.abs(diff), 1.5 * dt);
-
-                    let now = performance.now() / 1000;
-                    if (now - this.lastFire > this.fireRate) {
-                        let aimDir = player.mesh.position.clone().sub(this.mesh.position).normalize();
-                        aimDir.x += (Math.random()-0.5)*0.05;
-                        aimDir.y += 0.05; 
-                        aimDir.z += (Math.random()-0.5)*0.05;
-                        aimDir.normalize();
-
-                        // Abrams 炮管较长，生成点需略微靠前
-                        let spawnPos = this.mesh.position.clone().add(new THREE.Vector3(0, 2.2, 0));
-                        spawnPos.add(aimDir.clone().multiplyScalar(4.5)); 
-
-                        projectiles.push(new Projectile(spawnPos, aimDir, 50, 20, false, 0xff0000, 0.4));
-                        this.lastFire = now;
-                    }
-                } else {
-                    let diff = this.hullYaw - this.turretYaw;
-                    while (diff > Math.PI) diff -= Math.PI * 2;
-                    while (diff < -Math.PI) diff += Math.PI * 2;
-                    this.turretYaw += Math.sign(diff) * Math.min(Math.abs(diff), 1.5 * dt);
-                }
-                
-                this.turret.rotation.y = this.turretYaw;
-
-                if (this.velocity > 0) {
+                if (this.velocity > 0.01) {
                     let newX = this.mesh.position.x + Math.sin(this.hullYaw) * this.velocity * dt;
                     let newZ = this.mesh.position.z + Math.cos(this.hullYaw) * this.velocity * dt;
                     
@@ -1309,6 +1911,40 @@
                         this.mesh.position.z = newZ;
                     } else { this.targetPos = this.getRandomPosition(); }
                 }
+                
+                this.applyTerrainAlignment(dt);
+
+                if (this.state === 'attack') {
+                    let turretWorldAngle = Math.atan2(player.mesh.position.x - this.mesh.position.x, player.mesh.position.z - this.mesh.position.z);
+                    let diff = turretWorldAngle - this.turretYaw;
+                    while (diff > Math.PI) diff -= Math.PI * 2;
+                    while (diff < -Math.PI) diff += Math.PI * 2;
+                    this.turretYaw += Math.sign(diff) * Math.min(Math.abs(diff), 1.5 * dt);
+
+                    let now = performance.now() / 1000;
+                    if (now - this.lastFire > this.fireRate && this.canFire) { 
+                        // AI 加入一定的随机散布
+                        let aimDir = player.mesh.position.clone().sub(this.mesh.position).normalize();
+                        aimDir.x += (Math.random()-0.5)*0.08;
+                        aimDir.y += 0.05 + (Math.random()-0.5)*0.05; 
+                        aimDir.z += (Math.random()-0.5)*0.08;
+                        aimDir.normalize();
+
+                        let spawnPos = new THREE.Vector3();
+                        this.weapons.getWorldPosition(spawnPos);
+                        spawnPos.add(aimDir.clone().multiplyScalar(4.0)); 
+
+                        projectiles.push(new Projectile(spawnPos, aimDir, 200, 20, false, 0xff0000, 0.4));
+                        this.lastFire = now;
+                    }
+                } else {
+                    let diff = this.hullYaw - this.turretYaw;
+                    while (diff > Math.PI) diff -= Math.PI * 2;
+                    while (diff < -Math.PI) diff += Math.PI * 2;
+                    this.turretYaw += Math.sign(diff) * Math.min(Math.abs(diff), 1.5 * dt);
+                }
+                
+                this.turret.rotation.y = this.turretYaw;
 
                 this.updateUI();
             }
@@ -1344,10 +1980,9 @@
             }
         }
 
-        // 新增烟雾弹特效类
         class SmokeCloud {
             constructor(pos) {
-                this.life = 15.0; // 存活15秒
+                this.life = 15.0; 
                 this.maxLife = 15.0;
                 this.particles = [];
                 this.group = new THREE.Group();
@@ -1358,14 +1993,13 @@
                     color: 0x888888,
                     transparent: true,
                     opacity: 0.8,
-                    depthWrite: false // 防止半透明排序穿模
+                    depthWrite: false 
                 });
 
-                // 生成多团烟雾球
                 for(let i = 0; i < 12; i++) {
                     let puff = new THREE.Mesh(geo, mat.clone());
                     puff.position.set((Math.random()-0.5)*8, (Math.random())*5, (Math.random()-0.5)*8);
-                    puff.scaleTarget = 3 + Math.random()*4; // 最终膨胀大小
+                    puff.scaleTarget = 3 + Math.random()*4; 
                     this.group.add(puff);
                     this.particles.push(puff);
                 }
@@ -1375,18 +2009,71 @@
                 this.life -= dt;
                 if(this.life <= 0) return false;
 
-                let progress = this.life / this.maxLife; // 1 to 0
-                let opacity = Math.min(0.8, progress * 1.5); // 逐渐变淡
+                let progress = this.life / this.maxLife; 
+                let opacity = Math.min(0.8, progress * 1.5); 
 
                 for(let puff of this.particles) {
                     puff.material.opacity = opacity;
-                    // 膨胀
                     if (puff.scale.x < puff.scaleTarget) {
                         puff.scale.addScalar(dt * 3);
                     }
-                    // 缓慢上升和漂移
                     puff.position.y += dt * 0.3; 
                     puff.position.x += dt * 0.2;
+                }
+                return true;
+            }
+            destroy() {
+                scene.remove(this.group);
+            }
+        }
+
+        // 新增短暂火焰喷发特效类 (替代殉爆时的烟雾)
+        class FireCloud {
+            constructor(pos) {
+                this.life = 1.5; // 存活1.5秒，短暂而剧烈的喷发
+                this.maxLife = 1.5;
+                this.particles = [];
+                this.group = new THREE.Group();
+                this.group.position.copy(pos);
+
+                const geo = new THREE.SphereGeometry(1.0, 8, 8); // 缩小基础几何体大小
+                const mat = new THREE.MeshBasicMaterial({
+                    color: 0xff5500, // 橘红火焰色
+                    transparent: true,
+                    opacity: 1.0,
+                    blending: THREE.AdditiveBlending, // 发光混合模式，重叠处更亮
+                    depthWrite: false 
+                });
+
+                for(let i = 0; i < 15; i++) {
+                    let puff = new THREE.Mesh(geo, mat.clone());
+                    // 集中在底盘中心喷发，减小散布范围
+                    puff.position.set((Math.random()-0.5)*2.5, (Math.random())*1.5, (Math.random()-0.5)*2.5);
+                    puff.scaleTarget = 1.0 + Math.random()*1.5; // 减小最大膨胀体积
+                    // 随机颜色偏移：使火焰中心偏黄，边缘偏红
+                    puff.material.color.setHSL(0.05 + Math.random()*0.08, 1.0, 0.5);
+                    this.group.add(puff);
+                    this.particles.push(puff);
+                }
+                scene.add(this.group);
+            }
+            update(dt) {
+                this.life -= dt;
+                if(this.life <= 0) return false;
+
+                let progress = this.life / this.maxLife; 
+                let opacity = progress; 
+
+                for(let puff of this.particles) {
+                    puff.material.opacity = Math.min(1, opacity * 1.5);
+                    // 火焰快速膨胀，减缓膨胀速度
+                    if (puff.scale.x < puff.scaleTarget) {
+                        puff.scale.addScalar(dt * 8);
+                    }
+                    // 向上高速喷涌，减缓上升速度
+                    puff.position.y += dt * 6.0 * progress; 
+                    puff.position.x += (Math.random() - 0.5) * dt * 2;
+                    puff.position.z += (Math.random() - 0.5) * dt * 2;
                 }
                 return true;
             }
@@ -1398,23 +2085,70 @@
         class Projectile {
             constructor(pos, dir, speed, damage, isPlayerOwned, color, size, isMissile = false) {
                 this.pos = pos;
-                this.dir = dir;
+                this.velocity = dir.clone().multiplyScalar(speed);
                 this.speed = speed;
                 this.damage = damage;
                 this.isPlayerOwned = isPlayerOwned;
                 this.isMissile = isMissile;
                 this.life = 3.0; 
-
-                const geo = isMissile ? new THREE.BoxGeometry(size, size, size*3) : new THREE.CylinderGeometry(size/4, size/4, size*6, 8);
-                const mat = new THREE.MeshBasicMaterial({ color: color });
-                this.mesh = new THREE.Mesh(geo, mat);
-                this.mesh.position.copy(pos);
                 
-                if (!isMissile) {
-                    this.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+                this.gravity = isMissile ? 0 : 9.8;
+                this.mesh = new THREE.Group();
+                this.mesh.position.copy(pos);
+
+                let currentDir = this.velocity.clone().normalize();
+
+                if (isMissile) {
+                    const bodyGeo = new THREE.CylinderGeometry(0.15, 0.15, 1.8, 8);
+                    bodyGeo.rotateX(Math.PI / 2);
+                    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.4 });
+                    const bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
+                    this.mesh.add(bodyMesh);
+
+                    const finGeo = new THREE.BoxGeometry(0.8, 0.05, 0.4);
+                    const finMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+                    for(let angle of [0, Math.PI/2]) {
+                        let fin = new THREE.Mesh(finGeo, finMat);
+                        fin.position.set(0, 0, -0.6);
+                        fin.rotation.z = angle;
+                        this.mesh.add(fin);
+                    }
+
+                    const flameGeo = new THREE.ConeGeometry(0.2, 1.5, 8);
+                    flameGeo.rotateX(-Math.PI / 2); 
+                    const flameMat = new THREE.MeshBasicMaterial({ 
+                        color: 0xffaa00, 
+                        transparent: true, 
+                        opacity: 0.9,
+                        blending: THREE.AdditiveBlending 
+                    });
+                    this.flameMesh = new THREE.Mesh(flameGeo, flameMat);
+                    this.flameMesh.position.set(0, 0, -1.6);
+                    this.mesh.add(this.flameMesh);
+
+                    this.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), currentDir);
                 } else {
-                    this.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), dir);
+                    const coreGeo = new THREE.CylinderGeometry(0.08, 0.08, size * 8, 8);
+                    coreGeo.rotateX(Math.PI / 2);
+                    const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+                    const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+                    
+                    const glowGeo = new THREE.CylinderGeometry(0.2, 0.2, size * 10, 8);
+                    glowGeo.rotateX(Math.PI / 2);
+                    const glowMat = new THREE.MeshBasicMaterial({ 
+                        color: color, 
+                        transparent: true, 
+                        opacity: 0.6,
+                        blending: THREE.AdditiveBlending
+                    });
+                    const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+
+                    this.mesh.add(coreMesh);
+                    this.mesh.add(glowMesh);
+                    
+                    this.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), currentDir);
                 }
+                
                 scene.add(this.mesh);
             }
 
@@ -1422,46 +2156,97 @@
                 this.life -= dt;
                 if (this.life <= 0) return false; 
 
-                let step = this.dir.clone().multiplyScalar(this.speed * dt);
-                this.mesh.position.add(step);
+                this.velocity.y -= this.gravity * dt;
+                let stepDist = this.velocity.length() * dt;
+                let currentDir = this.velocity.clone().normalize();
 
-                for (let b of buildings) {
-                    if (this.mesh.position.x > b.minX && this.mesh.position.x < b.maxX &&
-                        this.mesh.position.y > 0 && this.mesh.position.y < b.height &&
-                        this.mesh.position.z > b.minZ && this.mesh.position.z < b.maxZ) {
-                        createExplosion(this.mesh.position, this.isMissile ? 3 : 1);
-                        return false;
+                if (this.isMissile && this.flameMesh) {
+                    this.flameMesh.scale.z = 0.8 + Math.random() * 0.4;
+                    this.flameMesh.material.opacity = 0.6 + Math.random() * 0.4;
+                }
+
+                let raycaster = new THREE.Raycaster(this.mesh.position, currentDir, 0, stepDist);
+                let intersects = raycaster.intersectObjects(collidables, true);
+
+                let hit = intersects.find(i => {
+                    let obj = i.object;
+                    let hitTank = null;
+                    while(obj) {
+                        if (obj.userData && obj.userData.tank) {
+                            hitTank = obj.userData.tank;
+                            break;
+                        }
+                        obj = obj.parent;
                     }
-                }
-                
-                if (this.mesh.position.y <= 0) {
-                    createExplosion(this.mesh.position, this.isMissile ? 3 : 1);
-                    return false;
-                }
+                    if (hitTank) {
+                        if (this.isPlayerOwned && hitTank.isPlayer) return false;
+                        if (!this.isPlayerOwned && !hitTank.isPlayer) return false;
+                    }
+                    return true;
+                });
 
-                if (this.isPlayerOwned) {
-                    for (let i = 0; i < enemies.length; i++) {
-                        let enemy = enemies[i];
-                        if (this.mesh.position.distanceTo(enemy.mesh.position) < enemy.radius + 1) { 
-                            let killed = enemy.takeDamage(this.damage);
-                            createExplosion(this.mesh.position, this.isMissile ? 4 : 1.5);
-                            
-                            showHitFeedback(killed);
-
-                            if (killed) {
-                                showKillMessage("摧毁敌军坦克");
-                                enemies.splice(i, 1);
-                                setTimeout(() => spawnEnemies(1), 3000);
-                            }
+                if (hit) {
+                    this.mesh.position.copy(hit.point);
+                    let hitObj = hit.object;
+                    let tank = null;
+                    
+                    let obj = hitObj;
+                    while(obj) {
+                        if (obj.userData && obj.userData.tank) {
+                            tank = obj.userData.tank;
+                            break;
+                        }
+                        obj = obj.parent;
+                    }
+                    
+                    if (tank) {
+                        // 遇到已阵亡的残骸，直接作为掩体吸收子弹并爆炸
+                        if (tank.isDestroyed) {
+                            createExplosion(this.mesh.position, this.isMissile ? 3 : 1);
                             return false;
                         }
+
+                        let result = tank.handleHit(hitObj, this.damage, this.isMissile);
+                        createExplosion(this.mesh.position, this.isMissile ? 4 : 1.5);
+                        
+                        if (this.isPlayerOwned) {
+                            showHitFeedback(result.killed);
+                            
+                            if (result.msg) {
+                                const feed = document.getElementById('kill-feed');
+                                const el = document.createElement('div');
+                                el.innerText = `命中弱点: ${result.msg}`;
+                                el.style.color = "#FF9800";
+                                feed.appendChild(el);
+                                setTimeout(() => { el.remove(); }, 3000);
+                            }
+
+                            if (result.killed) {
+                                showKillMessage("摧毁敌军坦克");
+                                let idx = enemies.indexOf(tank);
+                                if (idx > -1) enemies.splice(idx, 1);
+                                setTimeout(() => spawnEnemies(1), 3000);
+                            }
+                        } else if (tank.isPlayer) {
+                            if (result.msg) sendChatMessage(`系统告警: 我们的${result.msg}`);
+                            createExplosion(this.mesh.position, 1.5);
+                        }
+                    } else {
+                        createExplosion(this.mesh.position, this.isMissile ? 3 : 1);
                     }
-                } else {
-                    if (this.mesh.position.distanceTo(player.mesh.position) < player.radius + 1.5) {
-                        player.takeDamage(this.damage);
-                        createExplosion(this.mesh.position, 1.5);
-                        return false;
-                    }
+                    return false; 
+                }
+
+                let step = this.velocity.clone().multiplyScalar(dt);
+                this.mesh.position.add(step);
+
+                this.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), currentDir);
+
+                // 物理地形碰撞销毁
+                let terrainY = getTerrainHeight(this.mesh.position.x, this.mesh.position.z);
+                if (this.mesh.position.y <= terrainY) {
+                    createExplosion(this.mesh.position, this.isMissile ? 3 : 1);
+                    return false;
                 }
 
                 return true;
@@ -1510,44 +2295,159 @@
         }
 
         function buildCity() {
-            const groundGeo = new THREE.PlaneGeometry(300, 300);
-            const groundMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            // 1. 生成高细分度地形多边形
+            const groundGeo = new THREE.PlaneGeometry(300, 300, 60, 60);
+            groundGeo.rotateX(-Math.PI / 2);
+            
+            // 操控顶点生成起伏
+            const pos = groundGeo.attributes.position;
+            for (let i = 0; i < pos.count; i++) {
+                let vx = pos.getX(i);
+                let vz = pos.getZ(i);
+                pos.setY(i, getTerrainHeight(vx, vz));
+            }
+            groundGeo.computeVertexNormals();
+
+            // 为丘陵地带匹配暗绿色草地材质
+            const groundMat = new THREE.MeshStandardMaterial({ 
+                color: 0x3a4b33, 
+                roughness: 1.0, 
+                metalness: 0.0 
+            });
             const ground = new THREE.Mesh(groundGeo, groundMat);
-            ground.rotation.x = -Math.PI / 2;
             ground.receiveShadow = true;
             scene.add(ground);
+            
+            collidables.push(ground);
 
-            const gridHelper = new THREE.GridHelper(300, 60, 0x000000, 0x000000);
-            gridHelper.material.opacity = 0.2;
-            gridHelper.material.transparent = true;
-            scene.add(gridHelper);
+            // 清空旧的障碍物数据
+            buildings.length = 0;
 
-            const buildingGeo = new THREE.BoxGeometry(1, 1, 1);
-            const buildingMat = new THREE.MeshStandardMaterial({ color: 0x777777, roughness: 0.9 });
+            // 2. 生成程序化低多边形树木 (替代原来的灰色方块)
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 1.0 });
+            const leavesMat = new THREE.MeshStandardMaterial({ color: 0x2e4a22, roughness: 0.9, flatShading: true });
+            
+            const trunkGeo = new THREE.CylinderGeometry(0.4, 0.6, 4, 7);
+            const leavesGeo1 = new THREE.ConeGeometry(3.5, 7, 7);
+            const leavesGeo2 = new THREE.ConeGeometry(2.8, 6, 7);
+            const leavesGeo3 = new THREE.ConeGeometry(2.0, 5, 7);
 
-            for (let i = 0; i < 40; i++) {
-                let w = 10 + Math.random() * 15;
-                let d = 10 + Math.random() * 15;
-                let h = 10 + Math.random() * 30;
+            for (let i = 0; i < 60; i++) {
+                let x = (Math.random() - 0.5) * 280;
+                let z = (Math.random() - 0.5) * 280;
+
+                // 避开玩家出生点
+                if (Math.abs(x) < 35 && Math.abs(z) < 35) continue;
+
+                let yBase = getTerrainHeight(x, z);
                 
-                let x = (Math.random() - 0.5) * 250;
-                let z = (Math.random() - 0.5) * 250;
+                let treeGroup = new THREE.Group();
+                treeGroup.position.set(x, yBase, z);
 
-                if (Math.abs(x) < 30 && Math.abs(z) < 30) continue;
+                // 树干
+                let trunk = new THREE.Mesh(trunkGeo, trunkMat);
+                trunk.position.y = 2;
+                trunk.castShadow = true; trunk.receiveShadow = true;
+                treeGroup.add(trunk);
 
-                let b = new THREE.Mesh(buildingGeo, buildingMat);
-                b.scale.set(w, h, d);
-                b.position.set(x, h/2, z);
-                b.castShadow = true;
-                b.receiveShadow = true;
-                scene.add(b);
+                // 树冠层叠
+                let l1 = new THREE.Mesh(leavesGeo1, leavesMat);
+                l1.position.y = 5.5;
+                l1.castShadow = true; l1.receiveShadow = true;
+                treeGroup.add(l1);
 
+                let l2 = new THREE.Mesh(leavesGeo2, leavesMat);
+                l2.position.y = 8.5;
+                l2.castShadow = true; l2.receiveShadow = true;
+                treeGroup.add(l2);
+
+                let l3 = new THREE.Mesh(leavesGeo3, leavesMat);
+                l3.position.y = 11;
+                l3.castShadow = true; l3.receiveShadow = true;
+                treeGroup.add(l3);
+
+                // 随机缩放与旋转
+                let scale = 0.7 + Math.random() * 0.6;
+                treeGroup.scale.set(scale, scale, scale);
+                treeGroup.rotation.y = Math.random() * Math.PI * 2;
+                
+                // 树木稍微倾斜以适应地形，保持向上生长的自然感
+                treeGroup.rotation.x = (Math.random() - 0.5) * 0.1;
+                treeGroup.rotation.z = (Math.random() - 0.5) * 0.1;
+
+                scene.add(treeGroup);
+                collidables.push(treeGroup); // 让树木能阻挡子弹和激光测距
+
+                // 将树干作为坦克的物理碰撞体积，使其可作为掩体
+                let colRadius = 0.8 * scale;
                 buildings.push({
-                    minX: x - w/2, maxX: x + w/2,
-                    minZ: z - d/2, maxZ: z + d/2,
-                    height: h
+                    minX: x - colRadius, maxX: x + colRadius,
+                    minZ: z - colRadius, maxZ: z + colRadius,
+                    baseY: yBase, height: 15 * scale
                 });
             }
+
+            // 3. 硬件实例化生成草丛 (InstancedMesh 极大提升性能)
+            const grassCount = 4000;
+            const grassGeo = new THREE.ConeGeometry(0.3, 1.5, 3);
+            grassGeo.translate(0, 0.75, 0); // 将原点移到根部
+            const grassMat = new THREE.MeshStandardMaterial({ color: 0x4a6b33, roughness: 1.0, flatShading: true });
+            const grassInstanced = new THREE.InstancedMesh(grassGeo, grassMat, grassCount);
+            grassInstanced.receiveShadow = true;
+
+            let dummy = new THREE.Object3D();
+            for(let i=0; i<grassCount; i++){
+                let gx = (Math.random() - 0.5) * 290;
+                let gz = (Math.random() - 0.5) * 290;
+                let gy = getTerrainHeight(gx, gz);
+                
+                dummy.position.set(gx, gy, gz);
+                dummy.rotation.y = Math.random() * Math.PI * 2;
+                // 随风倾斜感
+                dummy.rotation.x = (Math.random() - 0.5) * 0.4; 
+                dummy.rotation.z = (Math.random() - 0.5) * 0.4;
+
+                let gScale = 0.4 + Math.random() * 0.8;
+                dummy.scale.set(gScale, gScale, gScale);
+                
+                dummy.updateMatrix();
+                grassInstanced.setMatrixAt(i, dummy.matrix);
+            }
+            scene.add(grassInstanced);
+
+            // 4. 硬件实例化生成岩石杂物
+            const rockCount = 150;
+            const rockGeo = new THREE.DodecahedronGeometry(1, 0); // 低多边形石头
+            const rockMat = new THREE.MeshStandardMaterial({ color: 0x6a6b63, roughness: 0.9, flatShading: true });
+            const rockInstanced = new THREE.InstancedMesh(rockGeo, rockMat, rockCount);
+            rockInstanced.castShadow = true;
+            rockInstanced.receiveShadow = true;
+            
+            for(let i=0; i<rockCount; i++){
+                let rx = (Math.random() - 0.5) * 290;
+                let rz = (Math.random() - 0.5) * 290;
+                if (Math.abs(rx) < 20 && Math.abs(rz) < 20) continue;
+                let ry = getTerrainHeight(rx, rz);
+                
+                dummy.position.set(rx, ry - 0.2, rz); // 稍微陷入地下
+                dummy.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+                let rScale = 0.5 + Math.random() * 2.0;
+                dummy.scale.set(rScale, rScale * (0.5+Math.random()*0.5), rScale); // 压扁一点
+                
+                dummy.updateMatrix();
+                rockInstanced.setMatrixAt(i, dummy.matrix);
+                
+                // 较大的石头加入刚体碰撞
+                if (rScale > 1.5) {
+                    buildings.push({
+                        minX: rx - rScale, maxX: rx + rScale,
+                        minZ: rz - rScale, maxZ: rz + rScale,
+                        baseY: ry, height: rScale * 1.5
+                    });
+                }
+            }
+            scene.add(rockInstanced);
+            collidables.push(rockInstanced); // 允许子弹打中石头产生爆炸
         }
 
         function spawnEnemies(count) {
@@ -1582,6 +2482,7 @@
                 case 'KeyA': keys.a = isDown; break;
                 case 'KeyS': keys.s = isDown; break;
                 case 'KeyD': keys.d = isDown; break;
+                case 'KeyC': keys.c = isDown; break; 
             }
         }
 
@@ -1625,11 +2526,41 @@
                 }
             }
             
-            // 更新烟雾粒子系统
             for (let i = smokeClouds.length - 1; i >= 0; i--) {
                 if (!smokeClouds[i].update(dt)) {
                     smokeClouds[i].destroy();
                     smokeClouds.splice(i, 1);
+                }
+            }
+
+            // 更新火焰喷发粒子系统
+            for (let i = fireClouds.length - 1; i >= 0; i--) {
+                if (!fireClouds[i].update(dt)) {
+                    fireClouds[i].destroy();
+                    fireClouds.splice(i, 1);
+                }
+            }
+
+            // 更新残骸物理效果 (计算被炸飞的炮塔坠落)
+            for (let tank of destroyedTanks) {
+                if (tank.turretVelocity.lengthSq() > 0) {
+                    // 施加沉重的重力加速 (调低至 6，配合极小的初速度，实现电影慢镜头般的厚重滞空感)
+                    tank.turretVelocity.y -= 6 * dt; 
+                    tank.turret.position.add(tank.turretVelocity.clone().multiplyScalar(dt));
+                    
+                    // 凌空翻滚
+                    tank.turret.rotation.x += tank.turretRotVelocity.x * dt;
+                    tank.turret.rotation.y += tank.turretRotVelocity.y * dt;
+                    tank.turret.rotation.z += tank.turretRotVelocity.z * dt;
+                    
+                    // 炮塔砸落地面判断
+                    let terrainY = getTerrainHeight(tank.turret.position.x, tank.turret.position.z);
+                    if (tank.turret.position.y <= terrainY + 0.5) { 
+                        tank.turret.position.y = terrainY + 0.5;
+                        tank.turretVelocity.set(0, 0, 0); 
+                        tank.turretRotVelocity.set(0, 0, 0);
+                        createExplosion(tank.turret.position, 4); // 砸落地面扬起尘土
+                    }
                 }
             }
 
