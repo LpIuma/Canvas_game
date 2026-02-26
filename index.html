@@ -6,66 +6,119 @@
     <title>Vibe Coding Games</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+
         body {
-            background-color: #0f172a;
-            color: #f8fafc;
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            /* 调整为更明显的淡蓝色天空渐变，以便衬托白云 */
+            background: linear-gradient(180deg, #bae6fd 0%, #e0f2fe 40%, #f8fafc 100%);
+            color: #0f172a;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
         }
-        .game-card {
-            transition: all 0.3s ease;
-            background: #1e293b;
-            border: 1px solid #334155;
+
+        /* --- CSS 白云动画 --- */
+        .cloud-container {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            overflow: hidden;
+            z-index: -1; /* 确保云层在内容下方 */
+            pointer-events: none;
         }
-        .game-card:hover {
-            transform: translateY(-10px);
-            border-color: #38bdf8;
-            box-shadow: 0 10px 25px -5px rgba(56, 189, 248, 0.3);
+        .cloud {
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 100px;
+            position: absolute;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.02);
+            animation: floatClouds linear infinite;
+        }
+        .cloud::before, .cloud::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 50%;
+        }
+        /* 云朵形状 1 */
+        .cloud1 { width: 120px; height: 40px; top: 15%; left: -150px; animation-duration: 45s; }
+        .cloud1::before { width: 60px; height: 60px; top: -30px; left: 15px; }
+        .cloud1::after { width: 40px; height: 40px; top: -20px; left: 65px; }
+
+        /* 云朵形状 2 */
+        .cloud2 { width: 180px; height: 60px; top: 35%; left: -200px; animation-duration: 60s; opacity: 0.7; transform: scale(1.2); }
+        .cloud2::before { width: 80px; height: 80px; top: -40px; left: 30px; }
+        .cloud2::after { width: 60px; height: 60px; top: -30px; right: 30px; }
+
+        @keyframes floatClouds {
+            from { transform: translateX(-200px); }
+            to { transform: translateX(120vw); }
+        }
+
+        /* --- 卡片基础悬浮过渡 --- */
+        .vibe-card {
+            transition: all 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+            background: rgba(255, 255, 255, 0.95); /* 卡片稍微带一点点透明，融入背景 */
+            backdrop-filter: blur(10px);
+        }
+        
+        .vibe-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px -15px rgba(2, 132, 199, 0.2);
+            background: rgba(255, 255, 255, 1);
         }
     </style>
 </head>
-<body class="min-h-screen py-12 px-4">
+<body class="min-h-screen py-16 px-4 md:px-8 relative">
 
-    <div class="max-w-6xl mx-auto">
-        <!-- 头部 -->
-        <header class="text-center mb-16">
-            <h1 class="text-5xl font-extrabold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+    <!-- 背景白云层 -->
+    <div class="cloud-container">
+        <div class="cloud cloud1"></div>
+        <div class="cloud cloud2" style="animation-delay: -20s;"></div>
+        <div class="cloud cloud1" style="top: 70%; animation-duration: 55s; animation-delay: -10s; transform: scale(0.8); opacity: 0.6;"></div>
+    </div>
+
+    <!-- 主体内容区 -->
+    <div class="max-w-6xl mx-auto relative z-10">
+        <!-- 头部：极简留白 -->
+        <header class="text-center mb-24 mt-8">
+            <h1 class="text-5xl md:text-6xl font-black mb-6 text-[#1e3a8a] tracking-tight drop-shadow-sm">
                 H5 小游戏
             </h1>
-            <p class="text-slate-400 text-lg">Vibe Coding 制作的游戏合集</p>
+            <p class="text-sky-700/80 text-lg font-bold tracking-wide">
+                Vibe Coding 制作的游戏合集
+            </p>
         </header>
 
         <!-- 游戏列表 -->
-        <div id="game-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div id="game-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <!-- 游戏卡片将通过 JS 动态渲染 -->
         </div>
 
         <!-- 页脚 -->
-        <footer class="mt-20 text-center text-slate-500 text-sm border-t border-slate-800 pt-8">
-            <p>© 2026 Lpluma 游戏小站 | 基于 GitHub Pages 构建</p>
+        <footer class="mt-32 text-center text-sky-600/60 text-sm font-medium">
+            <p>© 2026 Lpluma 游戏小站</p>
         </footer>
     </div>
 
     <script>
-        // 更新说明：cover 路径已改为指向本地 assets 文件夹
-        // 请确保 assets 文件夹中的文件名与下方代码一致
         const GAMES = [
             {
-                title: "猎奇2048",
+                title: "2048",
                 description: "熊猫从可爱到诡异的转变(创意来自just-joker.top)",
-                cover: "https://pic1.imgdb.cn/item/699de40c01b9a5550a560e55.jpg", // 假设文件名为 2048_cover.jpg
+                cover: "https://pic1.imgdb.cn/item/699de40c01b9a5550a560e55.jpg", 
                 url: "./games/2048_panda/index.html", 
-                tags: ["益智", "猎奇","恐怖", "熊猫人", "Just_Joker"]
+                tags: ["益智", "猎奇","恐怖"]
             },
             {
                 title: "BMPT",
                 description: "BMPT 模拟器。",
-                cover: "./assets/BMPT.png", // 假设文件名为 bmpt_cover.jpg
+                cover: "./assets/BMPT.png", 
                 url: "./games/BMPT/index.html",
                 tags: ["轮椅", "出生","游戏强国"]
             },
             {
                 title: "ShitSweeper",
                 description: "每次扫雷均需要观看视频,雷则是答辩视频(答辩产自just-joker.top)",
-                cover: "./assets/ShitSweeper.png", // 假设文件名为 shitsweeper_cover.jpg
+                cover: "./assets/ShitSweeper.png", 
                 url: "./games/ShitSweeper/index.html",
                 tags: ["奶龙", "搬屎","猎奇"]
             }
@@ -74,25 +127,34 @@
         function renderGames() {
             const list = document.getElementById('game-list');
             list.innerHTML = GAMES.map(game => `
-                <div class="game-card rounded-2xl overflow-hidden flex flex-col cursor-pointer" onclick="window.location.href='${game.url}'">
-                    <div class="h-48 overflow-hidden bg-slate-800">
+                <div class="vibe-card group relative rounded-[20px] overflow-hidden cursor-pointer border border-white/60" onclick="window.location.href='${game.url}'">
+                    
+                    <!-- 顶部情绪线条 -->
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-sky-300 to-[#1e3a8a] opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20"></div>
+
+                    <!-- 封面图 -->
+                    <div class="h-56 overflow-hidden bg-sky-50/50 relative m-2 rounded-2xl">
                         <img src="${game.cover}" alt="${game.title}" 
-                             class="w-full h-full object-cover" 
-                             onerror="this.src='https://via.placeholder.com/400x225/1e293b/475569?text=Image+Not+Found'">
+                             class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                             onerror="this.src='https://via.placeholder.com/400x225/f1f5f9/94a3b8?text=Image'">
+                        <div class="absolute inset-0 bg-sky-900/0 group-hover:bg-sky-900/5 transition-colors duration-300"></div>
                     </div>
-                    <div class="p-6 flex-grow">
-                        <div class="flex gap-2 mb-3">
+
+                    <div class="p-6 pt-5">
+                        <div class="flex flex-wrap gap-2 mb-4">
                             ${game.tags.map(tag => `
-                                <span class="px-2 py-1 bg-blue-500/10 text-blue-400 text-[10px] rounded-md font-bold uppercase tracking-wider">${tag}</span>
+                                <span class="px-2.5 py-1 bg-sky-100/60 text-sky-700 text-[11px] rounded-md font-bold tracking-wider">${tag}</span>
                             `).join('')}
                         </div>
-                        <h2 class="text-xl font-bold mb-2">${game.title}</h2>
-                        <p class="text-slate-400 text-sm line-clamp-2">${game.description}</p>
+                        
+                        <h2 class="text-2xl font-bold mb-3 text-[#0f172a] group-hover:text-sky-600 transition-colors">${game.title}</h2>
+                        <p class="text-slate-500 text-sm leading-relaxed line-clamp-2">${game.description}</p>
                     </div>
-                    <div class="p-6 pt-0 mt-auto text-blue-400 font-bold text-sm flex items-center">
-                        立即开始 
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+
+                    <div class="px-6 pb-6 mt-2 flex items-center text-sky-500 font-semibold text-sm group-hover:text-[#1e3a8a] transition-colors">
+                        开始游戏
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1.5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
                         </svg>
                     </div>
                 </div>
