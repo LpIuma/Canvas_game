@@ -5,7 +5,7 @@
 
 这是一个基于 **Vibe Coding** 理念制作的 H5 趣味小游戏合集。收录了一些自制游戏以及有些不一样的经典的 Web 游戏。
 
-[**🚀 立即开始游戏**](https://你的用户名.github.io/你的仓库名/)
+[**🚀 立即开始游戏**](https://lpiuma.github.io/Canvas_game/)
 
 ---
 
