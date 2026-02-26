@@ -73,6 +73,54 @@
             pointer-events: none;
         }
 
+        /* 占点 UI */
+        #capture-ui {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            z-index: 20;
+        }
+        .capture-icon {
+            width: 36px;
+            height: 36px;
+            border: 2px solid #fff;
+            border-radius: 4px; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            font-weight: bold;
+            color: #fff;
+            background: rgba(0,0,0,0.6);
+            text-shadow: 1px 1px 2px #000;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            transition: all 0.3s;
+        }
+        .capture-bar-bg {
+            width: 180px;
+            height: 10px;
+            background: rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 5px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 5px #000;
+        }
+        .capture-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: #fff;
+            transition: width 0.1s linear, background-color 0.3s;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
         /* --- 战争雷霆风格：左下角状态面板 --- */
         #wt-status-panel {
             position: absolute;
@@ -87,7 +135,6 @@
             width: 120px;
             height: 120px;
             background: radial-gradient(circle, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 100%);
-            border: 2px solid rgba(255, 255, 255, 0.15);
             border-radius: 50%;
             position: relative;
             display: flex;
@@ -95,6 +142,13 @@
             align-items: center;
             margin-bottom: 10px;
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        #wt-hp-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: rotate(-90deg);
+            pointer-events: none;
         }
         /* 车体线框 */
         #wt-hull {
@@ -278,7 +332,7 @@
         /* 击杀提示 */
         #kill-feed {
             position: absolute;
-            bottom: 30px;
+            bottom: 210px; /* 从 30px 上移，给小地图让位 */
             right: 30px;
             color: #FF5252;
             font-weight: bold;
@@ -287,6 +341,27 @@
             display: flex;
             flex-direction: column;
             gap: 5px;
+        }
+
+        /* 小地图 */
+        #minimap {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.6);
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 10;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+        }
+        #minimap-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
         }
         
         /* 命中/击杀 屏幕中央反馈 UI */
@@ -415,6 +490,7 @@
         #btn-fire { bottom: 40px; right: 40px; width: 90px; height: 90px; background: rgba(255,0,0,0.4); border-color: #ff5252;}
         #btn-missile { bottom: 150px; right: 40px; width: 70px; height: 70px; background: rgba(255,152,0,0.4); border-color: #ff9800;}
         #btn-sniper { bottom: 40px; right: 150px; width: 60px; height: 60px; }
+        <div id="btn-rate" class="mobile-btn" style="bottom: 130px; right: 130px; width: 50px; height: 50px; font-size: 14px; font-weight: bold;">射速</div>
         
         #btn-smoke { top: 20px; right: 90px; width: 50px; height: 50px; font-size: 18px;}
         #btn-repair { top: 20px; right: 20px; width: 50px; height: 50px; font-size: 18px;}
@@ -437,6 +513,7 @@
             #wt-status-panel { bottom: 180px; left: 20px; transform: scale(0.7); transform-origin: bottom left; }
             #chat-feed { bottom: auto; top: 80px; left: 20px; font-size: 12px; }
             #kill-feed { bottom: auto; top: 20px; right: 160px; font-size: 12px; }
+            #minimap { width: 120px; height: 120px; bottom: 20px; right: 20px; }
             .instructions { font-size: 14px; padding: 10px; margin-bottom: 15px;}
             h1 { font-size: 32px; }
         }
@@ -455,12 +532,23 @@
     <div id="ui-layer">
         <div id="mouse-aim"></div>
         <div id="crosshair"></div>
+
+        <!-- 占点 UI -->
+        <div id="capture-ui">
+            <div class="capture-icon" id="capture-icon">D</div>
+            <div class="capture-bar-bg">
+                <div class="capture-bar-fill" id="capture-bar-fill"></div>
+            </div>
+        </div>
         
-        <!-- 中央命中/击杀反馈 UI -->
+        <!-- 命中/击杀 屏幕中央反馈 UI -->
         <div id="feedback-ui">
             <div id="feedback-main" class="hit">命中</div>
             <div id="feedback-sub">114🦁，514💡</div>
         </div>
+
+        <!-- 自毁倒计时 UI -->
+        <div id="self-destruct-ui" style="position: absolute; top: 30%; left: 50%; transform: translateX(-50%); color: #ff0000; font-size: 36px; font-weight: bold; font-family: monospace; text-shadow: 0 0 10px #ff0000, 1px 1px 2px #000; display: none; z-index: 100; pointer-events: none;">离开载具: 3.0s</div>
 
         <!-- 第一人称狙击镜UI层 -->
         <div id="sniper-hud">
@@ -507,6 +595,10 @@
         <!-- 战争雷霆风格：左下角坦克姿态状态栏 -->
         <div id="wt-status-panel">
             <div class="wt-circle-bg">
+                <svg id="wt-hp-svg" width="120" height="120">
+                    <circle cx="60" cy="60" r="56" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="4"></circle>
+                    <circle id="wt-hp-ring" cx="60" cy="60" r="56" fill="none" stroke="#4CAF50" stroke-width="4" stroke-dasharray="351.86" stroke-dashoffset="0" style="transition: stroke-dashoffset 0.3s, stroke 0.3s;"></circle>
+                </svg>
                 <div id="wt-hull"></div>
                 <div id="wt-turret"></div>
             </div>
@@ -518,17 +610,17 @@
         <div id="action-bar">
             <!-- 30mm 机炮 -->
             <div class="action-slot">
-                <div class="action-key">LMB</div>
+                <div class="action-key">LMB / E</div>
                 <div class="action-name">2A42</div>
                 <div class="action-icon">☄️</div>
-                <div class="action-count" id="ui-ammo-gun">1200</div>
+                <div class="action-count" id="ui-ammo-gun">∞ [中]</div>
             </div>
             <!-- 导弹 -->
             <div class="action-slot">
                 <div class="action-key">RMB</div>
                 <div class="action-name">9M120 "攻击"</div>
                 <div class="action-icon">🚀</div>
-                <div class="action-count" id="ui-ammo-missile">8</div>
+                <div class="action-count" id="ui-ammo-missile">4</div>
                 <div class="cooldown-overlay" id="ui-cooldown-missile"></div>
             </div>
             <!-- 烟雾弹 -->
@@ -551,6 +643,11 @@
 
         <div id="kill-feed"></div>
         <div id="enemy-huds"></div>
+
+        <!-- 小地图 -->
+        <div id="minimap">
+            <canvas id="minimap-canvas" width="160" height="160"></canvas>
+        </div>
         
         <!-- 移动端虚拟按键 -->
         <div id="mobile-controls">
@@ -562,6 +659,7 @@
             <div id="btn-fire" class="mobile-btn">☄️<div class="m-ammo" id="m-ammo-gun-m"></div></div>
             <div id="btn-missile" class="mobile-btn">🚀<div class="m-ammo" id="m-ammo-missile-m"></div><div class="m-cooldown" id="m-cd-missile-m"></div></div>
             <div id="btn-sniper" class="mobile-btn">👁️</div>
+            <div id="btn-rate" class="mobile-btn" style="bottom: 130px; right: 130px; width: 50px; height: 50px; font-size: 14px; font-weight: bold;">射速</div>
             
             <div id="btn-smoke" class="mobile-btn">💨<div class="m-ammo" id="m-ammo-smoke-m"></div><div class="m-cooldown" id="m-cd-smoke-m"></div></div>
             <div id="btn-repair" class="mobile-btn">🔧<div class="m-ammo" id="m-ammo-repair-m"></div><div class="m-cooldown" id="m-cd-repair-m"></div></div>
@@ -578,9 +676,11 @@
             [鼠标移动] - 旋转视角与炮塔<br>
             <strong>[按住 C] - 自由视角，锁定炮塔朝向</strong><br>
             [鼠标左键] - 2A42 机炮 | [鼠标右键] - 9M120 导弹<br>
+            [E] - 切换机炮射速 (低/中/高)<br>
             [Q] - 激光测距与火控校准 (弹道补偿)<br>
             [G] - 释放烟雾弹 | [F] - 修理套件<br>
-            [Shift] - 切换 炮镜视角 | [T] - 无线电消息<br><br>
+            [Shift] - 切换 炮镜视角 | [T] - 无线电消息<br>
+            <strong>[长按 J] - 3秒自爆与重新部署</strong><br><br>
             全新起伏地形与环境光照！利用地形优势消灭敌人！
         </div>
         <button id="start-btn">点击进入战场</button>
@@ -603,6 +703,16 @@
         let collidables = []; 
         let destroyedTanks = []; // 新增：保存被摧毁坦克的数组，用于计算炮塔飞天与遗留残骸
         
+        // 占点全局数据
+        const capturePoint = {
+            pos: new THREE.Vector3(0, 0, 70), // D点位置
+            radius: 25,
+            progress: 0, // 范围 -100 到 100
+            owner: 0,    // 1 我方，-1 敌方，0 中立
+            circleMesh: null,
+            lightColumn: null
+        };
+
         let lastTime = 0;
         let isGameRunning = false;
         
@@ -639,6 +749,112 @@
             scene.background = tex;
             // 配合地形的轻微雾效，增加空间感
             scene.fog = new THREE.FogExp2(0xc6d8e6, 0.0035); 
+        }
+
+        // --- 占点模式系统 ---
+        function initCapturePoint() {
+            // 地形贴合的白线圆圈
+            const circlePts = [];
+            const segments = 64;
+            for(let i=0; i<=segments; i++){
+                let theta = (i / segments) * Math.PI * 2;
+                let x = capturePoint.pos.x + Math.cos(theta) * capturePoint.radius;
+                let z = capturePoint.pos.z + Math.sin(theta) * capturePoint.radius;
+                let y = getTerrainHeight(x, z) + 0.3; 
+                circlePts.push(new THREE.Vector3(x, y, z));
+            }
+            const circleGeo = new THREE.BufferGeometry().setFromPoints(circlePts);
+            const circleMat = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 3 });
+            capturePoint.circleMesh = new THREE.Line(circleGeo, circleMat);
+            scene.add(capturePoint.circleMesh);
+
+            // 占点发光柱体 (使其在远处可见)
+            const columnGeo = new THREE.CylinderGeometry(capturePoint.radius, capturePoint.radius, 100, 32, 1, true);
+            const columnMat = new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.15,
+                side: THREE.DoubleSide,
+                depthWrite: false,
+                blending: THREE.AdditiveBlending
+            });
+            capturePoint.lightColumn = new THREE.Mesh(columnGeo, columnMat);
+            let cy = getTerrainHeight(capturePoint.pos.x, capturePoint.pos.z) + 50;
+            capturePoint.lightColumn.position.set(capturePoint.pos.x, cy, capturePoint.pos.z);
+            scene.add(capturePoint.lightColumn);
+        }
+
+        function updateCapturePoint(dt) {
+            let playerInside = false;
+            let enemiesInside = 0;
+
+            if (player && player.hp > 0) {
+                let dx = player.mesh.position.x - capturePoint.pos.x;
+                let dz = player.mesh.position.z - capturePoint.pos.z;
+                if (dx*dx + dz*dz < capturePoint.radius * capturePoint.radius) playerInside = true;
+            }
+
+            for (let e of enemies) {
+                if (e.hp > 0) {
+                    let dx = e.mesh.position.x - capturePoint.pos.x;
+                    let dz = e.mesh.position.z - capturePoint.pos.z;
+                    if (dx*dx + dz*dz < capturePoint.radius * capturePoint.radius) enemiesInside++;
+                }
+            }
+
+            let captureRate = 8; // 占领速度，大约12秒占满
+            let oldOwner = capturePoint.owner;
+
+            if (playerInside && enemiesInside === 0) {
+                capturePoint.progress += captureRate * dt;
+            } else if (!playerInside && enemiesInside > 0) {
+                capturePoint.progress -= captureRate * dt;
+            }
+            
+            capturePoint.progress = Math.max(-100, Math.min(100, capturePoint.progress));
+            
+            if (capturePoint.progress === 100) capturePoint.owner = 1;
+            else if (capturePoint.progress === -100) capturePoint.owner = -1;
+            else if (capturePoint.progress === 0 && !playerInside && enemiesInside === 0) capturePoint.owner = 0;
+
+            if (oldOwner !== capturePoint.owner) {
+                if (capturePoint.owner === 1) {
+                    showKillMessage("我方已占领 D 点！", true);
+                    sendChatMessage("干得漂亮！D点已被我方控制。");
+                } else if (capturePoint.owner === -1) {
+                    showKillMessage("警告：敌方已占领 D 点！");
+                }
+            }
+            
+            updateCaptureUI();
+        }
+
+        function updateCaptureUI() {
+            const fill = document.getElementById('capture-bar-fill');
+            const icon = document.getElementById('capture-icon');
+
+            let w = Math.abs(capturePoint.progress);
+            fill.style.width = w + '%';
+            
+            let colorHex = 0xffffff;
+            let colorCss = '#ffffff';
+
+            if (capturePoint.progress > 0) {
+                if (capturePoint.progress === 100) { colorHex = 0x2196F3; colorCss = '#2196F3'; } // Blue
+                else { colorHex = 0x81D4FA; colorCss = '#81D4FA'; } // Capturing blue
+            } else if (capturePoint.progress < 0) {
+                if (capturePoint.progress === -100) { colorHex = 0xF44336; colorCss = '#F44336'; } // Red
+                else { colorHex = 0xEF9A9A; colorCss = '#EF9A9A'; } // Capturing red
+            }
+
+            fill.style.backgroundColor = colorCss;
+            icon.style.borderColor = colorCss;
+            icon.style.color = colorCss;
+
+            if (capturePoint.circleMesh) {
+                capturePoint.circleMesh.material.color.setHex(colorHex);
+                capturePoint.lightColumn.material.color.setHex(colorHex);
+            }
         }
 
         // --- 无线电消息系统 ---
@@ -744,7 +960,7 @@
         }
         
         // 增加 C 键状态
-        const keys = { w: false, a: false, s: false, d: false, c: false };
+        const keys = { w: false, a: false, s: false, d: false, c: false, j: false };
         const mouse = { leftDown: false, rightDown: false };
         let cameraYaw = 0; 
         let cameraPitch = 0.2; 
@@ -791,6 +1007,8 @@
             scene.add(dirLight);
 
             buildCity();
+            
+            initCapturePoint();
 
             player = new PlayerTank(0, 0);
             scene.add(player.mesh);
@@ -828,14 +1046,19 @@
                     }
 
                     if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
-                        isSniperMode = !isSniperMode;
-                        updateCameraMode();
+                        if (player && player.hp > 0) {
+                            isSniperMode = !isSniperMode;
+                            updateCameraMode();
+                        }
                     }
                     if (e.code === 'KeyF') {
                         if (player) player.useRepair();
                     }
                     if (e.code === 'KeyG') {
                         if (player) player.useSmoke();
+                    }
+                    if (e.code === 'KeyE') {
+                        if (player) player.toggleFireRate();
                     }
                     if (e.code === 'KeyQ') {
                         if (player) player.useLRF();
@@ -1012,6 +1235,7 @@
             bindBtn('btn-fire', () => { if(isGameRunning) mouse.leftDown = true; }, () => mouse.leftDown = false);
             bindBtn('btn-missile', () => { if(isGameRunning) { mouse.rightDown = true; if(player) player.fireMissile(); } }, () => mouse.rightDown = false);
             bindBtn('btn-sniper', () => { if(isGameRunning) { isSniperMode = !isSniperMode; updateCameraMode(); } });
+            bindBtn('btn-rate', () => { if(isGameRunning && player) player.toggleFireRate(); });
             bindBtn('btn-smoke', () => { if(isGameRunning && player) player.useSmoke(); });
             bindBtn('btn-repair', () => { if(isGameRunning && player) player.useRepair(); });
             bindBtn('btn-radio', () => { 
@@ -1245,13 +1469,17 @@
                     this.weapons.add(this.launcherMuzzles[0], this.launcherMuzzles[1]);
                     
                     this.lastGunFire = 0;
-                    this.gunCooldown = 0.1; 
-                    this.lastMissileFire = 0;
-                    this.missileCooldownTimer = 0;
+                    this.fireRateMode = 1; // 0:低, 1:中, 2:高
+                    this.fireRates = [0.2, 0.1, 0.05];
+                    this.fireRateLabels = ['低', '中', '高'];
                     this.gunSide = 1; 
 
-                    this.ammoGun = 1200;
-                    this.ammoMissile = 8;
+                    this.missilesInClip = 4;
+                    this.missileReloadTimer = 0;
+                    this.missileIntraCooldown = 0;
+                    this.MISSILE_RELOAD_TIME = 8.0;
+                    this.MISSILE_INTRA_DELAY = 0.5;
+
                     this.repairs = 3;
                     this.repairCooldown = 0;
                     this.MAX_REPAIR_COOLDOWN = 15;
@@ -1373,15 +1601,21 @@
                 this.opticsMat.color.setHex(0x000000);
 
                 // --- 物理效果：炮塔飞天 (Jack-in-the-box) ---
-                // 获取当前世界坐标，并将炮塔从车体上解绑放入世界坐标系
-                this.turret.getWorldPosition(this.turret.position);
-                this.turret.getWorldQuaternion(this.turret.quaternion);
-                scene.attach(this.turret);
+                // 正确获取世界坐标与旋转，避免直接覆盖本地坐标导致的二次偏移瞬移
+                let worldPos = new THREE.Vector3();
+                let worldQuat = new THREE.Quaternion();
+                this.turret.getWorldPosition(worldPos);
+                this.turret.getWorldQuaternion(worldQuat);
                 
-                // 给炮塔施加强烈的爆炸冲量与旋转力矩 (大幅降低初速度，增加沉重感)
+                // 将炮塔脱离车体，加入全局场景，并赋予正确的绝对坐标
+                scene.add(this.turret);
+                this.turret.position.copy(worldPos);
+                this.turret.quaternion.copy(worldQuat);
+                
+                // 给炮塔施加强烈的爆炸冲量与旋转力矩
                 this.turretVelocity.set(
                     (Math.random() - 0.5) * 6, 
-                    8 + Math.random() * 6, // 降低垂直炸飞高度
+                    12 + Math.random() * 8, // 略微增加垂直向上的初速度，让飞头抛物线更明显
                     (Math.random() - 0.5) * 6
                 );
                 this.turretRotVelocity.set(
@@ -1450,6 +1684,16 @@
                 this.isRanging = false;
                 this.currentRangedDist = 0;
                 this.lockedGunDir = new THREE.Vector3(0, 0, 1);
+            }
+
+            toggleFireRate() {
+                this.fireRateMode = (this.fireRateMode + 1) % 3;
+                const feed = document.getElementById('kill-feed');
+                const el = document.createElement('div');
+                el.innerText = `机炮射速切换: ${this.fireRateLabels[this.fireRateMode]}`;
+                el.style.color = "#FFEB3B";
+                feed.appendChild(el);
+                setTimeout(() => { el.remove(); }, 3000);
             }
 
             useRepair() {
@@ -1552,6 +1796,24 @@
             }
 
             update(dt) {
+                // 自爆逻辑
+                let sdUi = document.getElementById('self-destruct-ui');
+                if (keys.j) {
+                    this.selfDestructTimer = (this.selfDestructTimer || 0) + dt;
+                    sdUi.style.display = 'block';
+                    sdUi.innerText = `离开载具: ${(3.0 - this.selfDestructTimer).toFixed(1)}s`;
+                    if (this.selfDestructTimer >= 3.0) {
+                        this.hp = 0;
+                        this.destroy();
+                        sdUi.style.display = 'none';
+                        showKillMessage("玩家启动了自毁程序");
+                        return; // 结束当前帧更新
+                    }
+                } else {
+                    this.selfDestructTimer = 0;
+                    sdUi.style.display = 'none';
+                }
+
                 let moveInput = 0;
                 let turnInput = 0;
                 
@@ -1735,12 +1997,28 @@
 
                 if (mouse.leftDown && this.canFire) this.fireAutocannon(dt);
                 
-                if (this.missileCooldownTimer > 0) this.missileCooldownTimer -= dt;
+                if (this.missileIntraCooldown > 0) this.missileIntraCooldown -= dt;
+                if (this.missileReloadTimer > 0) {
+                    this.missileReloadTimer -= dt;
+                    if (this.missileReloadTimer <= 0) {
+                        this.missilesInClip = 4;
+                        const feed = document.getElementById('kill-feed');
+                        const el = document.createElement('div');
+                        el.innerText = `导弹装填完毕`;
+                        el.style.color = "#4CAF50";
+                        feed.appendChild(el);
+                        setTimeout(() => { el.remove(); }, 3000);
+                    }
+                }
                 if (this.repairCooldown > 0) this.repairCooldown -= dt;
                 if (this.smokeCooldown > 0) this.smokeCooldown -= dt;
 
-                if (this.missileCooldownTimer > 0) {
-                    let mp = (this.missileCooldownTimer / MISSILE_COOLDOWN) * 100;
+                if (this.missileReloadTimer > 0) {
+                    let mp = (this.missileReloadTimer / this.MISSILE_RELOAD_TIME) * 100;
+                    document.getElementById('ui-cooldown-missile').style.height = mp + '%';
+                    if(isMobileMode) document.getElementById('m-cd-missile-m').style.height = mp + '%';
+                } else if (this.missileIntraCooldown > 0) {
+                    let mp = (this.missileIntraCooldown / this.MISSILE_INTRA_DELAY) * 100;
                     document.getElementById('ui-cooldown-missile').style.height = mp + '%';
                     if(isMobileMode) document.getElementById('m-cd-missile-m').style.height = mp + '%';
                 } else { 
@@ -1766,14 +2044,14 @@
                     if(isMobileMode) document.getElementById('m-cd-smoke-m').style.height = '0%';
                 }
 
-                document.getElementById('ui-ammo-gun').innerText = this.ammoGun;
-                document.getElementById('ui-ammo-missile').innerText = this.ammoMissile;
+                document.getElementById('ui-ammo-gun').innerText = `∞ [${this.fireRateLabels[this.fireRateMode]}]`;
+                document.getElementById('ui-ammo-missile').innerText = this.missilesInClip > 0 ? this.missilesInClip : '装填中';
                 document.getElementById('ui-ammo-repair').innerText = this.repairs;
                 document.getElementById('ui-ammo-smoke').innerText = this.ammoSmoke;
                 
                 if(isMobileMode) {
-                    document.getElementById('m-ammo-gun-m').innerText = this.ammoGun;
-                    document.getElementById('m-ammo-missile-m').innerText = this.ammoMissile;
+                    document.getElementById('m-ammo-gun-m').innerText = `∞[${this.fireRateLabels[this.fireRateMode]}]`;
+                    document.getElementById('m-ammo-missile-m').innerText = this.missilesInClip;
                     document.getElementById('m-ammo-repair-m').innerText = this.repairs;
                     document.getElementById('m-ammo-smoke-m').innerText = this.ammoSmoke;
                 }
@@ -1800,6 +2078,20 @@
                 turretEl.style.borderColor = turretColor;
                 document.styleSheets[0].insertRule(`#wt-turret::before { background-color: ${turretColor} !important; }`, document.styleSheets[0].cssRules.length);
 
+                // 更新血条环
+                let hpRing = document.getElementById('wt-hp-ring');
+                if (hpRing) {
+                    let ringOffset = 351.86 * (1 - Math.max(0, hpPercent));
+                    hpRing.style.strokeDashoffset = ringOffset;
+                    if (hpPercent < 0.3) {
+                        hpRing.style.stroke = '#F44336';
+                    } else if (hpPercent < 0.7) {
+                        hpRing.style.stroke = '#FFEB3B';
+                    } else {
+                        hpRing.style.stroke = '#4CAF50';
+                    }
+                }
+
                 let speedKmh = Math.abs(this.velocity * 3.6);
                 document.getElementById('wt-speed').innerText = `${Math.floor(speedKmh)} km/h`;
             }
@@ -1807,9 +2099,9 @@
             fireAutocannon() {
                 if (!this.canFire) return; 
                 let now = performance.now() / 1000;
-                if (now - this.lastGunFire > this.gunCooldown && this.ammoGun > 0) {
+                let currentCooldown = this.fireRates[this.fireRateMode];
+                if (now - this.lastGunFire > currentCooldown) {
                     this.lastGunFire = now;
-                    this.ammoGun--;
                     
                     let fireDir = new THREE.Vector3(0, 0, 1);
                     fireDir.applyQuaternion(this.weapons.getWorldQuaternion(new THREE.Quaternion())).normalize();
@@ -1825,18 +2117,29 @@
 
             fireMissile() {
                 if (!this.canFire) return;
-                if (this.missileCooldownTimer <= 0 && this.ammoMissile > 0) {
-                    this.missileCooldownTimer = MISSILE_COOLDOWN;
-                    this.ammoMissile--;
+                if (this.missilesInClip > 0 && this.missileIntraCooldown <= 0) {
+                    this.missileIntraCooldown = this.MISSILE_INTRA_DELAY;
                     
                     let fireDir = new THREE.Vector3(0, 0, 1);
                     fireDir.applyQuaternion(this.weapons.getWorldQuaternion(new THREE.Quaternion())).normalize();
 
-                    let muzzleIndex = Math.random() > 0.5 ? 1 : 0;
+                    // 导弹发射口选择：4->左上, 3->右上, 2->左下, 1->右下
+                    let isLeft = (this.missilesInClip % 2 === 0);
+                    let sideIndex = isLeft ? 0 : 1;
+                    let heightOffset = this.missilesInClip > 2 ? 0.2 : -0.2;
+
                     let spawnPos = new THREE.Vector3();
-                    this.launcherMuzzles[muzzleIndex].getWorldPosition(spawnPos);
+                    this.launcherMuzzles[sideIndex].getWorldPosition(spawnPos);
+                    
+                    let upDir = new THREE.Vector3(0, 1, 0).applyQuaternion(this.weapons.getWorldQuaternion(new THREE.Quaternion())).normalize();
+                    spawnPos.add(upDir.multiplyScalar(heightOffset));
                     
                     projectiles.push(new Projectile(spawnPos, fireDir, 80, 150, true, 0xff3300, 0.5, true));
+                    
+                    this.missilesInClip--;
+                    if (this.missilesInClip === 0) {
+                        this.missileReloadTimer = this.MISSILE_RELOAD_TIME;
+                    }
                 }
             }
         }
@@ -1857,6 +2160,17 @@
             }
 
             getRandomPosition() {
+                // 35% 概率去争夺 D 点
+                if (Math.random() < 0.35 && capturePoint.owner !== -1) {
+                    let angle = Math.random() * Math.PI * 2;
+                    let r = Math.random() * capturePoint.radius * 0.8;
+                    return new THREE.Vector3(
+                        capturePoint.pos.x + Math.cos(angle) * r,
+                        0,
+                        capturePoint.pos.z + Math.sin(angle) * r
+                    );
+                }
+                
                 // 确保目标点在地图范围内
                 let x = (Math.random() - 0.5) * 250;
                 let z = (Math.random() - 0.5) * 250;
@@ -2468,10 +2782,11 @@
             explosions.push(new Explosion(pos, size));
         }
 
-        function showKillMessage(msg) {
+        function showKillMessage(msg, isBlue = false) {
             const feed = document.getElementById('kill-feed');
             const el = document.createElement('div');
             el.innerText = msg;
+            if (isBlue) el.style.color = '#81D4FA';
             feed.appendChild(el);
             setTimeout(() => { el.remove(); }, 3000);
         }
@@ -2483,6 +2798,113 @@
                 case 'KeyS': keys.s = isDown; break;
                 case 'KeyD': keys.d = isDown; break;
                 case 'KeyC': keys.c = isDown; break; 
+                case 'KeyJ': keys.j = isDown; break;
+            }
+        }
+
+        // --- 小地图渲染逻辑 ---
+        function drawMinimap() {
+            if (!isGameRunning) return;
+            const canvas = document.getElementById('minimap-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            
+            // 设定雷达映射范围 (世界大小 300x300 映射到 Canvas 宽)
+            const mapScale = width / 300; 
+
+            ctx.clearRect(0, 0, width, height);
+
+            // 画雷达圈与十字参考线
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, width/2 - 2, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, 0); ctx.lineTo(centerX, height);
+            ctx.moveTo(0, centerY); ctx.lineTo(width, centerY);
+            ctx.stroke();
+
+            // 坐标转换器
+            function toMap(x, z) {
+                return {
+                    x: centerX + x * mapScale,
+                    y: centerY + z * mapScale
+                };
+            }
+
+            // 画 D 点目标区域
+            if (capturePoint) {
+                let pos = toMap(capturePoint.pos.x, capturePoint.pos.z);
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, capturePoint.radius * mapScale, 0, Math.PI * 2);
+                if (capturePoint.owner === 1) ctx.fillStyle = 'rgba(33, 150, 243, 0.5)';
+                else if (capturePoint.owner === -1) ctx.fillStyle = 'rgba(244, 67, 54, 0.5)';
+                else ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fill();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.stroke();
+                
+                ctx.fillStyle = '#fff';
+                ctx.font = '12px monospace';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('D', pos.x, pos.y);
+            }
+
+            // 画被摧毁的残骸区 (灰色小方块)
+            ctx.fillStyle = '#666';
+            for (let tank of destroyedTanks) {
+                let pos = toMap(tank.mesh.position.x, tank.mesh.position.z);
+                ctx.fillRect(pos.x - 2, pos.y - 2, 4, 4);
+            }
+
+            // 画敌人 (红点)
+            ctx.fillStyle = '#F44336';
+            for (let e of enemies) {
+                if (e.hp > 0) {
+                    let pos = toMap(e.mesh.position.x, e.mesh.position.z);
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            // 画玩家
+            if (player && player.hp > 0) {
+                let pos = toMap(player.mesh.position.x, player.mesh.position.z);
+                
+                // 1. 视野扇形指示 (使用相机朝向)
+                ctx.save();
+                ctx.translate(pos.x, pos.y);
+                ctx.rotate(-cameraYaw); // 适配 WebGL 到 Canvas 的旋转差
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                // Canvas 中 +Y 为下，Math.PI/2 代表正下方 (地图的 +Z 前方)
+                ctx.arc(0, 0, 40, Math.PI/2 - 0.4, Math.PI/2 + 0.4); 
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+
+                // 2. 玩家车体图标 (绿色三角箭头)
+                ctx.save();
+                ctx.translate(pos.x, pos.y);
+                ctx.rotate(-player.hullYaw); 
+                
+                ctx.fillStyle = '#4CAF50';
+                ctx.beginPath();
+                ctx.moveTo(0, 6);   // 尖端朝地图前方(+Z方向)
+                ctx.lineTo(-4, -4);
+                ctx.lineTo(4, -4);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
             }
         }
 
@@ -2499,13 +2921,51 @@
             let dt = (currentTime - lastTime) / 1000;
             lastTime = currentTime;
             if (dt > 0.1) dt = 0.1; 
+            
+            updateCapturePoint(dt);
 
             if (player && player.hp > 0) {
                 player.update(dt);
             } else if (player && player.hp <= 0) {
-                showKillMessage("车体被毁，战斗失败...");
-                player = null;
-                setTimeout(() => location.reload(), 3000);
+                // 隐藏常规UI和自毁UI
+                document.getElementById('mouse-aim').style.display = 'none';
+                document.getElementById('crosshair').style.display = 'none';
+                document.getElementById('sniper-hud').style.display = 'none';
+                document.getElementById('self-destruct-ui').style.display = 'none';
+                if (camera.fov !== 70) {
+                    camera.fov = 70;
+                    camera.updateProjectionMatrix();
+                }
+
+                // 视角跟随飞天的炮塔
+                let turretPos = new THREE.Vector3();
+                player.turret.getWorldPosition(turretPos);
+
+                // 让相机围绕炮塔缓慢旋转，并略微抬高俯视
+                let time = performance.now() * 0.001;
+                camera.position.x = turretPos.x + Math.sin(time) * 15;
+                camera.position.z = turretPos.z + Math.cos(time) * 15;
+                camera.position.y = Math.max(turretPos.y + 8, getTerrainHeight(camera.position.x, camera.position.z) + 2);
+                camera.lookAt(turretPos);
+
+                // 检查炮塔是否落地 (物理计算中，落地后 turretVelocity 会被设为 0)
+                if (player.turretVelocity.lengthSq() === 0 && player.isDestroyed) {
+                    if (player.respawnTimer === undefined) {
+                        player.respawnTimer = 3.0; // 落地后等3秒重生
+                        showKillMessage("准备重新部署...");
+                    }
+                    player.respawnTimer -= dt;
+                    if (player.respawnTimer <= 0) {
+                        // 重生逻辑
+                        let rx = (Math.random() - 0.5) * 80;
+                        let rz = (Math.random() - 0.5) * 80;
+                        player = new PlayerTank(rx, rz);
+                        scene.add(player.mesh);
+                        isSniperMode = false;
+                        updateCameraMode();
+                        showKillMessage("玩家已重新部署", true);
+                    }
+                }
             }
 
             for (let i = enemies.length - 1; i >= 0; i--) {
@@ -2563,6 +3023,8 @@
                     }
                 }
             }
+
+            drawMinimap();
 
             renderer.render(scene, camera);
         }
