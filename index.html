@@ -22,7 +22,7 @@
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             overflow: hidden;
-            z-index: -1; /* 确保云层在内容下方 */
+            z-index: -2; /* 调低一层层级，为粒子点云让出空间 */
             pointer-events: none;
         }
         .cloud {
@@ -84,9 +84,23 @@
             filter: drop-shadow(0 15px 20px rgba(2, 132, 199, 0.5)) brightness(1.05);
             transform: scale(1.05); 
         }
+
+        /* --- 粒子点云画布 --- */
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* 位于白云上方，但在游戏卡片下方 */
+            pointer-events: none;
+        }
     </style>
 </head>
 <body class="min-h-screen py-16 px-4 md:px-8 relative">
+
+    <!-- 粒子点云画布 -->
+    <canvas id="particle-canvas"></canvas>
 
     <!-- 背景白云层 -->
     <div class="cloud-container">
@@ -286,6 +300,109 @@
             setBallPosition();
             if (ballAnimating) requestAnimationFrame(updateBall);
         }
+
+        // --- 粒子点云特效引擎 ---
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        // 根据屏幕大小决定粒子数量，避免手机端卡顿
+        const particleCount = window.innerWidth < 768 ? 40 : 80;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.vx = (Math.random() - 0.5) * 0.6; // 缓慢的水平漂浮
+                this.vy = (Math.random() - 0.5) * 0.6 - 0.2; // 整体带有一点向上的微风阻力感
+                this.radius = Math.random() * 2 + 0.5; // 粒子大小随机
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                // 越界后从屏幕另一侧重新出现（无缝循环）
+                if (this.x < 0) this.x = canvas.width;
+                if (this.x > canvas.width) this.x = 0;
+                if (this.y < 0) this.y = canvas.height;
+                if (this.y > canvas.height) this.y = 0;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; // 半透明纯白粒子
+                ctx.fill();
+            }
+        }
+
+        // 初始化粒子群
+        for (let i = 0; i < particleCount; i++) {
+            particles.push(new Particle());
+        }
+
+        // 鼠标位置监听
+        let mouse = { x: null, y: null };
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.x;
+            mouse.y = e.y;
+        });
+        window.addEventListener('mouseout', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+        // 核心渲染循环
+        function animateParticles() {
+            // 清空上一帧
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (let i = 0; i < particles.length; i++) {
+                particles[i].update();
+                particles[i].draw();
+                
+                // 1. 粒子之间的连线 (白色微光)
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 110) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(255, 255, 255, ${0.25 - dist/110 * 0.25})`;
+                        ctx.lineWidth = 0.8;
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+                
+                // 2. 粒子与鼠标的连线 (交互天蓝色)
+                if (mouse.x != null && mouse.y != null) {
+                    const dx = particles[i].x - mouse.x;
+                    const dy = particles[i].y - mouse.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 160) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(56, 189, 248, ${0.4 - dist/160 * 0.4})`; // 天蓝色线条
+                        ctx.lineWidth = 1.2;
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(mouse.x, mouse.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animateParticles);
+        }
+        
+        // 启动特效
+        animateParticles();
     </script>
 </body>
 </html>
