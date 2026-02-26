@@ -65,6 +65,25 @@
             box-shadow: 0 20px 40px -15px rgba(2, 132, 199, 0.2);
             background: rgba(255, 255, 255, 1);
         }
+
+        /* --- 沙滩球样式 --- */
+        #beach-ball {
+            position: fixed;
+            width: 80px;
+            height: 80px;
+            cursor: pointer;
+            z-index: 100;
+            user-select: none;
+            touch-action: none;
+            filter: drop-shadow(0 10px 15px rgba(2, 132, 199, 0.3));
+            top: 0; left: 0; /* 初始化位置由JS接管 */
+            will-change: transform;
+        }
+        /* 未弹跳时增加一点悬浮反馈 */
+        #beach-ball.resting:hover {
+            filter: drop-shadow(0 15px 20px rgba(2, 132, 199, 0.5)) brightness(1.05);
+            transform: scale(1.05); 
+        }
     </style>
 </head>
 <body class="min-h-screen py-16 px-4 md:px-8 relative">
@@ -78,7 +97,7 @@
 
     <!-- 主体内容区 -->
     <div class="max-w-6xl mx-auto relative z-10">
-        <!-- 头部：极简留白 -->
+        <!-- 头部 -->
         <header class="text-center mb-24 mt-8">
             <h1 class="text-5xl md:text-6xl font-black mb-6 text-[#1e3a8a] tracking-tight drop-shadow-sm">
                 H5 小游戏
@@ -97,6 +116,36 @@
         <footer class="mt-32 text-center text-sky-600/60 text-sm font-medium">
             <p>© 2026 Lpluma 游戏小站</p>
         </footer>
+    </div>
+
+    <!-- 交互沙滩球 (纯 SVG 绘制) -->
+    <div id="beach-ball" class="resting">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+            <defs>
+                <clipPath id="ball-clip"><circle cx="50" cy="50" r="48"/></clipPath>
+                <!-- 球体高级玻璃质感高光 -->
+                <radialGradient id="ball-glow" cx="30%" cy="30%" r="70%">
+                    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+                    <stop offset="40%" stop-color="#ffffff" stop-opacity="0.1"/>
+                    <stop offset="100%" stop-color="#000000" stop-opacity="0.1"/>
+                </radialGradient>
+            </defs>
+            <!-- 基础白球底色 -->
+            <circle cx="50" cy="50" r="48" fill="#f8fafc" stroke="#7dd3fc" stroke-width="1.5"/>
+            
+            <!-- 蓝色条纹 -->
+            <path d="M50,2 C 20,20 20,80 50,98 C -10,80 -10,20 50,2 Z" fill="#38bdf8" clip-path="url(#ball-clip)"/>
+            <path d="M50,2 C 80,20 80,80 50,98 C 110,80 110,20 50,2 Z" fill="#38bdf8" clip-path="url(#ball-clip)"/>
+            
+            <!-- 顶部白点枢纽 -->
+            <circle cx="50" cy="50" r="12" fill="#f8fafc" stroke="#7dd3fc" stroke-width="1.5"/>
+            
+            <!-- 修改后的字样 -->
+            <text x="50" y="54" font-family="Arial, sans-serif" font-size="9" font-weight="900" fill="#0284c7" text-anchor="middle" transform="rotate(-15 50 50)">Lpluma</text>
+            
+            <!-- 覆盖一层玻璃高光层 -->
+            <circle cx="50" cy="50" r="48" fill="url(#ball-glow)" pointer-events="none"/>
+        </svg>
     </div>
 
     <script>
@@ -162,6 +211,81 @@
         }
 
         window.onload = renderGames;
+
+        // --- 沙滩球物理引擎 ---
+        const ball = document.getElementById('beach-ball');
+        const ballSize = 80;
+        
+        let ballX = window.innerWidth - ballSize - 30; 
+        let ballY = window.innerHeight - ballSize - 30;
+        let ballVX = 0; 
+        let ballVY = 0; 
+        let ballRot = 0; 
+        let ballAnimating = false;
+        
+        const gravity = 0.8; 
+        const bounce = 0.75; 
+        const friction = 0.99; 
+        
+        function setBallPosition() {
+            ball.style.transform = `translate3d(${ballX}px, ${ballY}px, 0) rotate(${ballRot}deg)`;
+        }
+        setBallPosition();
+        
+        window.addEventListener('resize', () => {
+            if (!ballAnimating) {
+                ballX = window.innerWidth - ballSize - 30;
+                ballY = window.innerHeight - ballSize - 30;
+                setBallPosition();
+            }
+        });
+
+        ball.addEventListener('click', () => {
+            ballVY = -(Math.random() * 15 + 15);
+            ballVX = (Math.random() - 0.5) * 45;
+            ball.classList.remove('resting');
+            if (!ballAnimating) {
+                ballAnimating = true;
+                requestAnimationFrame(updateBall);
+            }
+        });
+
+        function updateBall() {
+            if (!ballAnimating) return;
+
+            ballVY += gravity;
+            ballVX *= friction;
+            ballVY *= friction;
+
+            ballX += ballVX;
+            ballY += ballVY;
+            ballRot += ballVX * 2;
+
+            const maxX = window.innerWidth - ballSize;
+            const maxY = window.innerHeight - ballSize;
+
+            if (ballY > maxY) {
+                ballY = maxY;
+                ballVY = -ballVY * bounce;
+                ballVX *= 0.9;
+                if (Math.abs(ballVY) < 1.5 && Math.abs(ballVX) < 0.5) {
+                    ballAnimating = false;
+                    ballVY = 0; ballVX = 0; ballY = maxY;
+                    ball.classList.add('resting');
+                }
+            } else if (ballY < 0) {
+                ballY = 0; ballVY = -ballVY * bounce;
+            }
+
+            if (ballX > maxX) {
+                ballX = maxX; ballVX = -ballVX * bounce;
+            } else if (ballX < 0) {
+                ballX = 0; ballVX = -ballVX * bounce;
+            }
+
+            setBallPosition();
+            if (ballAnimating) requestAnimationFrame(updateBall);
+        }
     </script>
 </body>
 </html>
