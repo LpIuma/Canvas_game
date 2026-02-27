@@ -25,3 +25,17 @@
 
 * **即开即玩**：基于 GitHub Pages 部署，无需下载安装。
 * **响应式设计**：采用 Tailwind CSS 构建，适配手机与 PC 端。
+
+---
+
+## 📁 目录结构
+
+```text
+Canvas_game/
+├── index.html          # 游戏合集导航主页
+├── assets/             # 公共静态资源 (封面图、UI素材等)
+└── games/              # 各个游戏的独立源码存放区
+    ├── 2048_panda/     #  2048 源码
+    ├── BMPT/           # BMPT 模拟器源码
+    └── ShitSweeper/    # 互联网扫雷 (ShitSweeper) 源码
+```
