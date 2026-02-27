@@ -388,8 +388,7 @@
         }
         #feedback-main.kill {
             color: #ffffff;
-            -webkit-text-stroke: 1px red;
-            text-shadow: -1px -1px 0 red, 1px -1px 0 red, -1px 1px 0 red, 1px 1px 0 red, 0 0 15px red;
+            text-shadow: 0 0 10px #ff0000, 0 0 20px #ff0000, 0 0 30px #ff0000, 2px 2px 5px rgba(0,0,0,0.8);
         }
         #feedback-sub {
             font-size: 18px;
@@ -490,7 +489,6 @@
         #btn-fire { bottom: 40px; right: 40px; width: 90px; height: 90px; background: rgba(255,0,0,0.4); border-color: #ff5252;}
         #btn-missile { bottom: 150px; right: 40px; width: 70px; height: 70px; background: rgba(255,152,0,0.4); border-color: #ff9800;}
         #btn-sniper { bottom: 40px; right: 150px; width: 60px; height: 60px; }
-        <div id="btn-rate" class="mobile-btn" style="bottom: 130px; right: 130px; width: 50px; height: 50px; font-size: 14px; font-weight: bold;">射速</div>
         
         #btn-smoke { top: 20px; right: 90px; width: 50px; height: 50px; font-size: 18px;}
         #btn-repair { top: 20px; right: 20px; width: 50px; height: 50px; font-size: 18px;}
@@ -699,6 +697,8 @@
         let smokeClouds = []; 
         let fireClouds = []; // 新增：全局火焰粒子数组
         let buildings = [];
+        let fallingTrees = []; // 新增：正在倒塌的树木动画队列
+        let trunkMat, leavesMat, stumpGeo, topTrunkGeo, leavesGeo1, leavesGeo2, leavesGeo3; // 新增：树木静态实例化资源
         
         let collidables = []; 
         let destroyedTanks = []; // 新增：保存被摧毁坦克的数组，用于计算炮塔飞天与遗留残骸
@@ -1635,7 +1635,15 @@
                 // 判断建筑几何体碰撞 (现在需要结合地形高度)
                 for (let b of buildings) {
                     if (newPos.x > b.minX && newPos.x < b.maxX && newPos.z > b.minZ && newPos.z < b.maxZ) {
-                        return true; 
+                        if (b.type === 'tree') {
+                            if (!b.treeObj.isBroken) {
+                                // 坦克势不可挡，直接碾断树木
+                                let impactDir = new THREE.Vector3(Math.sin(this.hullYaw), 0, Math.cos(this.hullYaw)).normalize();
+                                b.treeObj.breakTree(impactDir);
+                            }
+                            return false; // 树木不再阻碍坦克移动
+                        }
+                        return true; // 依然会被岩石阻挡
                     }
                 }
                 // 边界碰撞
@@ -2396,6 +2404,160 @@
             }
         }
 
+        // ==========================================
+        // 可破坏树木物理系统
+        // ==========================================
+        function initTreeAssets() {
+            if(trunkMat) return;
+            trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 1.0 });
+            leavesMat = new THREE.MeshStandardMaterial({ color: 0x2e4a22, roughness: 0.9, flatShading: true });
+            
+            stumpGeo = new THREE.CylinderGeometry(0.4, 0.6, 1.2, 7);
+            stumpGeo.translate(0, 0.6, 0); // 原点在底面，方便留在地上
+            
+            topTrunkGeo = new THREE.CylinderGeometry(0.25, 0.4, 3.2, 7);
+            topTrunkGeo.translate(0, 1.6, 0); // 原点在断裂处底部，作为旋转铰链
+            
+            leavesGeo1 = new THREE.ConeGeometry(3.5, 7, 7);
+            leavesGeo2 = new THREE.ConeGeometry(2.8, 6, 7);
+            leavesGeo3 = new THREE.ConeGeometry(2.0, 5, 7);
+        }
+
+        class DestructibleTree {
+            constructor(x, z, scale) {
+                this.x = x;
+                this.z = z;
+                this.yBase = getTerrainHeight(x, z);
+                this.scale = scale;
+                this.isBroken = false;
+                
+                this.group = new THREE.Group();
+                this.group.position.set(x, this.yBase, z);
+
+                // 1. 留在原地的树桩
+                this.stump = new THREE.Mesh(stumpGeo, trunkMat);
+                this.stump.castShadow = true; this.stump.receiveShadow = true;
+                this.stump.userData = { treeObj: this };
+                this.group.add(this.stump);
+
+                // 2. 会倒下的上半部分
+                this.fallingGroup = new THREE.Group();
+                this.fallingGroup.position.set(0, 1.0, 0); // 断裂点在 y=1.0 处
+                this.group.add(this.fallingGroup);
+
+                let topTrunk = new THREE.Mesh(topTrunkGeo, trunkMat);
+                topTrunk.castShadow = true; topTrunk.receiveShadow = true;
+                topTrunk.userData = { treeObj: this };
+                this.fallingGroup.add(topTrunk);
+
+                let l1 = new THREE.Mesh(leavesGeo1, leavesMat);
+                l1.position.y = 4.5; l1.castShadow = true; l1.receiveShadow = true; l1.userData = { treeObj: this };
+                this.fallingGroup.add(l1);
+
+                let l2 = new THREE.Mesh(leavesGeo2, leavesMat);
+                l2.position.y = 7.5; l2.castShadow = true; l2.receiveShadow = true; l2.userData = { treeObj: this };
+                this.fallingGroup.add(l2);
+
+                let l3 = new THREE.Mesh(leavesGeo3, leavesMat);
+                l3.position.y = 10.0; l3.castShadow = true; l3.receiveShadow = true; l3.userData = { treeObj: this };
+                this.fallingGroup.add(l3);
+
+                // 随机化与缩放
+                this.group.scale.set(scale, scale, scale);
+                this.group.rotation.y = Math.random() * Math.PI * 2;
+                
+                // 树干原本的自然倾斜
+                this.fallingGroup.rotation.x = (Math.random() - 0.5) * 0.1;
+                this.fallingGroup.rotation.z = (Math.random() - 0.5) * 0.1;
+
+                scene.add(this.group);
+                collidables.push(this.group);
+
+                // 加入 AABB 建筑列表，以便坦克检测
+                let colRadius = 0.8 * scale;
+                buildings.push({
+                    type: 'tree',
+                    treeObj: this,
+                    minX: x - colRadius, maxX: x + colRadius,
+                    minZ: z - colRadius, maxZ: z + colRadius,
+                    baseY: this.yBase, height: 15 * scale
+                });
+
+                this.fallAxis = new THREE.Vector3();
+                this.fallAngle = 0;
+                this.fallSpeed = 0;
+                this.maxFallAngle = 0;
+                this.bounceCount = 0; // 新增：记录触地弹跳次数
+            }
+
+            breakTree(impactDir) {
+                if (this.isBroken) return;
+                this.isBroken = true;
+
+                // 计算受力倒塌轴线 (将冲力投射在XZ平面，再与Y轴求叉乘)
+                let flatImpact = new THREE.Vector3(impactDir.x, 0, impactDir.z).normalize();
+                if (flatImpact.lengthSq() < 0.1) flatImpact.set(1, 0, 0); // 兜底保护
+                
+                let up = new THREE.Vector3(0, 1, 0);
+                this.fallAxis.crossVectors(up, flatImpact).normalize();
+                
+                // 转换倒塌轴到树木的局部坐标系
+                let inverseGroupQuat = this.group.quaternion.clone().invert();
+                this.fallAxis.applyQuaternion(inverseGroupQuat);
+
+                // 极大地减小初始动量，让大树断裂时有“缓缓倾倒”的沉重起势感
+                this.fallSpeed = 0.2; 
+                this.maxFallAngle = Math.PI / 2 - 0.1 + (Math.random() * 0.2); 
+                this.bounceCount = 0;
+
+                fallingTrees.push(this);
+                
+                // 在断裂处爆出一团木屑尘土 (传入木褐色)
+                let cutPos = new THREE.Vector3(0, 1.2, 0);
+                this.group.localToWorld(cutPos);
+                createExplosion(cutPos, 1.0, 0x8b5a2b); 
+            }
+
+            updateFalling(dt) {
+                if (this.bounceCount > 2) return false; // 沉重地砸地几次后彻底停止计算
+
+                // 物理重力加速：随着倾倒角度增大，受重力力矩影响，下坠速度呈指数加快
+                this.fallSpeed += 12.0 * Math.sin(Math.max(0.1, this.fallAngle)) * dt; 
+                let step = this.fallSpeed * dt;
+                
+                if (this.fallAngle + step >= this.maxFallAngle) {
+                    // 预测本帧将穿模地面，卡住最大角度
+                    step = this.maxFallAngle - this.fallAngle;
+                    this.fallAngle = this.maxFallAngle;
+                    
+                    // 首次触地瞬间的视觉反馈
+                    if (this.bounceCount === 0) {
+                        // 巨大的树冠砸地，扬起大量的树叶与泥土混合的尘雾
+                        let topPos = new THREE.Vector3(0, 10, 0);
+                        this.fallingGroup.localToWorld(topPos);
+                        createExplosion(topPos, 2.5, 0x4a5d23); 
+                    }
+                    
+                    // 模拟大质量物体撞击泥土地面的沉闷微弹 (反向动能且损耗 85% 能量)
+                    this.fallSpeed = -this.fallSpeed * 0.15; 
+                    this.bounceCount++;
+                    
+                    // 如果弹跳动能已经微乎其微，直接强制休眠
+                    if (Math.abs(this.fallSpeed) < 0.2) {
+                        this.bounceCount = 3; 
+                    }
+                } else {
+                    this.fallAngle += step;
+                }
+
+                // 应用每帧的旋转增量
+                let rotDelta = new THREE.Quaternion().setFromAxisAngle(this.fallAxis, step);
+                this.fallingGroup.quaternion.premultiply(rotDelta);
+                
+                return true; // 继续执行倒塌与微弹计算
+            }
+        }
+
         class Projectile {
             constructor(pos, dir, speed, damage, isPlayerOwned, color, size, isMissile = false) {
                 this.pos = pos;
@@ -2503,11 +2665,16 @@
                     this.mesh.position.copy(hit.point);
                     let hitObj = hit.object;
                     let tank = null;
+                    let tree = null;
                     
                     let obj = hitObj;
                     while(obj) {
                         if (obj.userData && obj.userData.tank) {
                             tank = obj.userData.tank;
+                            break;
+                        }
+                        if (obj.userData && obj.userData.treeObj) {
+                            tree = obj.userData.treeObj;
                             break;
                         }
                         obj = obj.parent;
@@ -2545,6 +2712,13 @@
                             if (result.msg) sendChatMessage(`系统告警: 我们的${result.msg}`);
                             createExplosion(this.mesh.position, 1.5);
                         }
+                    } else if (tree) {
+                        // 炮弹命中树木，触发断裂
+                        if (!tree.isBroken) {
+                            let impactDir = this.velocity.clone().normalize();
+                            tree.breakTree(impactDir);
+                        }
+                        createExplosion(this.mesh.position, this.isMissile ? 3 : 1);
                     } else {
                         createExplosion(this.mesh.position, this.isMissile ? 3 : 1);
                     }
@@ -2572,14 +2746,14 @@
         }
 
         class Explosion {
-            constructor(pos, size) {
+            constructor(pos, size, color = 0xff8800) {
                 this.life = 0.3; 
                 this.maxLife = 0.3;
                 this.maxSize = size;
                 
                 const geo = new THREE.SphereGeometry(1, 8, 8);
                 const mat = new THREE.MeshBasicMaterial({ 
-                    color: 0xff8800, 
+                    color: color, 
                     transparent: true, 
                     opacity: 0.8 
                 });
@@ -2637,14 +2811,8 @@
             // 清空旧的障碍物数据
             buildings.length = 0;
 
-            // 2. 生成程序化低多边形树木 (替代原来的灰色方块)
-            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 1.0 });
-            const leavesMat = new THREE.MeshStandardMaterial({ color: 0x2e4a22, roughness: 0.9, flatShading: true });
-            
-            const trunkGeo = new THREE.CylinderGeometry(0.4, 0.6, 4, 7);
-            const leavesGeo1 = new THREE.ConeGeometry(3.5, 7, 7);
-            const leavesGeo2 = new THREE.ConeGeometry(2.8, 6, 7);
-            const leavesGeo3 = new THREE.ConeGeometry(2.0, 5, 7);
+            // 2. 生成程序化低多边形树木 (支持物理断裂)
+            initTreeAssets();
 
             for (let i = 0; i < 60; i++) {
                 let x = (Math.random() - 0.5) * 280;
@@ -2653,52 +2821,8 @@
                 // 避开玩家出生点
                 if (Math.abs(x) < 35 && Math.abs(z) < 35) continue;
 
-                let yBase = getTerrainHeight(x, z);
-                
-                let treeGroup = new THREE.Group();
-                treeGroup.position.set(x, yBase, z);
-
-                // 树干
-                let trunk = new THREE.Mesh(trunkGeo, trunkMat);
-                trunk.position.y = 2;
-                trunk.castShadow = true; trunk.receiveShadow = true;
-                treeGroup.add(trunk);
-
-                // 树冠层叠
-                let l1 = new THREE.Mesh(leavesGeo1, leavesMat);
-                l1.position.y = 5.5;
-                l1.castShadow = true; l1.receiveShadow = true;
-                treeGroup.add(l1);
-
-                let l2 = new THREE.Mesh(leavesGeo2, leavesMat);
-                l2.position.y = 8.5;
-                l2.castShadow = true; l2.receiveShadow = true;
-                treeGroup.add(l2);
-
-                let l3 = new THREE.Mesh(leavesGeo3, leavesMat);
-                l3.position.y = 11;
-                l3.castShadow = true; l3.receiveShadow = true;
-                treeGroup.add(l3);
-
-                // 随机缩放与旋转
                 let scale = 0.7 + Math.random() * 0.6;
-                treeGroup.scale.set(scale, scale, scale);
-                treeGroup.rotation.y = Math.random() * Math.PI * 2;
-                
-                // 树木稍微倾斜以适应地形，保持向上生长的自然感
-                treeGroup.rotation.x = (Math.random() - 0.5) * 0.1;
-                treeGroup.rotation.z = (Math.random() - 0.5) * 0.1;
-
-                scene.add(treeGroup);
-                collidables.push(treeGroup); // 让树木能阻挡子弹和激光测距
-
-                // 将树干作为坦克的物理碰撞体积，使其可作为掩体
-                let colRadius = 0.8 * scale;
-                buildings.push({
-                    minX: x - colRadius, maxX: x + colRadius,
-                    minZ: z - colRadius, maxZ: z + colRadius,
-                    baseY: yBase, height: 15 * scale
-                });
+                new DestructibleTree(x, z, scale);
             }
 
             // 3. 硬件实例化生成草丛 (InstancedMesh 极大提升性能)
@@ -2778,8 +2902,8 @@
             }
         }
 
-        function createExplosion(pos, size) {
-            explosions.push(new Explosion(pos, size));
+        function createExplosion(pos, size, color = 0xff8800) {
+            explosions.push(new Explosion(pos, size, color));
         }
 
         function showKillMessage(msg, isBlue = false) {
@@ -2983,6 +3107,13 @@
                 if (!explosions[i].update(dt)) {
                     explosions[i].destroy();
                     explosions.splice(i, 1);
+                }
+            }
+            
+            // 更新树木倒塌动画
+            for (let i = fallingTrees.length - 1; i >= 0; i--) {
+                if (!fallingTrees[i].updateFalling(dt)) {
+                    fallingTrees.splice(i, 1);
                 }
             }
             
