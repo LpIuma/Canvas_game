@@ -39,6 +39,9 @@ Canvas_game/
     ├── BMPT/           # BMPT 模拟器源码
     └── ShitSweeper/    # 互联网扫雷 (ShitSweeper) 源码
 ```
+
+---
+
 ### 🤝 鸣谢
 感谢以下开发者的灵感支持：
 <a href="https://github.com/JustJokerr">
