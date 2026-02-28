@@ -27,6 +27,24 @@
             pointer-events: none;
             display: none;
         }
+        /* 击毁统计计数器 - 左上角 */
+        #kill-counter {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #fff;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: bold;
+            background: rgba(10, 10, 10, 0.7);
+            padding: 8px 16px;
+            border-left: 4px solid #4CAF50;
+            border-radius: 4px;
+            text-shadow: 1px 1px 2px #000;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            z-index: 30;
+            pointer-events: none;
+        }
         /* 相机中心指示点 (鼠标意图) - 战争雷霆风格的大虚线牵引圈 */
         #mouse-aim {
             position: absolute;
@@ -417,6 +435,47 @@
             line-height: 1.6;
             text-align: center;
         }
+        
+        /* 战场设置面板 */
+        .settings-panel {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 15px 25px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .settings-panel h3 {
+            margin-top: 0;
+            color: #FFC107;
+            font-size: 20px;
+            border-bottom: 1px solid rgba(255, 193, 7, 0.5);
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .settings-item {
+            margin-bottom: 12px;
+            font-size: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 320px;
+        }
+        .settings-item select {
+            background: #222;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: inherit;
+            cursor: pointer;
+            outline: none;
+        }
+        .settings-item select:focus {
+            border-color: #4CAF50;
+        }
+
         button {
             padding: 15px 40px;
             font-size: 20px;
@@ -528,6 +587,9 @@
     <canvas id="game-canvas"></canvas>
     
     <div id="ui-layer">
+        <!-- 击毁敌军坦克数量显示 -->
+        <div id="kill-counter">上市的西方朋友：0</div>
+
         <div id="mouse-aim"></div>
         <div id="crosshair"></div>
 
@@ -681,6 +743,27 @@
             <strong>[长按 J] - 3秒自爆与重新部署</strong><br><br>
             全新起伏地形与环境光照！利用地形优势消灭敌人！
         </div>
+
+        <!-- 战场设置选项 -->
+        <div class="settings-panel">
+            <h3>战场设置 (按 ESC 呼出)</h3>
+            <div class="settings-item">
+                <label>残骸自动消失</label>
+                <select id="set-wreckage">
+                    <option value="0">关 (永久作为掩体)</option>
+                    <option value="30">30秒后消失</option>
+                    <option value="60">60秒后消失</option>
+                </select>
+            </div>
+            <div class="settings-item">
+                <label>弹药穿透倒塌树木</label>
+                <select id="set-penetration">
+                    <option value="0">关 (依然阻挡)</option>
+                    <option value="1">开 (可以穿透)</option>
+                </select>
+            </div>
+        </div>
+
         <button id="start-btn">点击进入战场</button>
     </div>
 
@@ -695,14 +778,24 @@
         let projectiles = [];
         let explosions = [];
         let smokeClouds = []; 
-        let fireClouds = []; // 新增：全局火焰粒子数组
+        let fireClouds = []; // 全局火焰粒子数组
         let buildings = [];
-        let fallingTrees = []; // 新增：正在倒塌的树木动画队列
-        let trunkMat, leavesMat, stumpGeo, topTrunkGeo, leavesGeo1, leavesGeo2, leavesGeo3; // 新增：树木静态实例化资源
+        let fallingTrees = []; // 正在倒塌的树木动画队列
+        let trunkMat, leavesMat, stumpGeo, topTrunkGeo, leavesGeo1, leavesGeo2, leavesGeo3; // 树木静态实例化资源
         
         let collidables = []; 
-        let destroyedTanks = []; // 新增：保存被摧毁坦克的数组，用于计算炮塔飞天与遗留残骸
+        let destroyedTanks = []; // 保存被摧毁坦克的数组，用于计算炮塔飞天与遗留残骸
         
+        // --- 核心统计逻辑 ---
+        let destroyedEnemyCount = 0; // 已击毁数量
+
+        function updateKillCounterUI() {
+            const el = document.getElementById('kill-counter');
+            if (el) {
+                el.innerText = `上市的西方朋友：${destroyedEnemyCount}`;
+            }
+        }
+
         // 占点全局数据
         const capturePoint = {
             pos: new THREE.Vector3(0, 0, 70), // D点位置
@@ -716,6 +809,12 @@
         let lastTime = 0;
         let isGameRunning = false;
         
+        // --- 游戏设置全局对象 ---
+        const gameSettings = {
+            wreckageDecay: 0,       // 0:不消失, 大于0则为倒计秒数
+            treePenetration: false  // 穿透倒下的树木
+        };
+
         // --- 地形高度计算函数 (多重柏林噪声模拟) ---
         function getTerrainHeight(x, z) {
             // 限制在场地内
@@ -1015,6 +1114,14 @@
 
             spawnEnemies(8);
 
+            // 绑定设置界面的事件监听
+            document.getElementById('set-wreckage').addEventListener('change', (e) => {
+                gameSettings.wreckageDecay = parseInt(e.target.value);
+            });
+            document.getElementById('set-penetration').addEventListener('change', (e) => {
+                gameSettings.treePenetration = (e.target.value === '1');
+            });
+
             document.addEventListener('touchstart', () => {
                 if (!isMobileMode && window.innerWidth <= 900) {
                     isMobileMode = true;
@@ -1112,6 +1219,8 @@
                 } else {
                     document.getElementById('start-screen').style.display = 'flex';
                     document.getElementById('ui-layer').style.display = 'none';
+                    // 动态更新按钮文字
+                    document.getElementById('start-btn').innerText = (player && player.hp > 0) ? "继续战斗" : "点击进入战场";
                     isGameRunning = false;
                 }
             });
@@ -1280,9 +1389,9 @@
                 this.weaponPitch = 0; 
                 this.radius = 2.5; 
 
-                this.isDestroyed = false; // 新增：损毁状态标记
-                this.turretVelocity = new THREE.Vector3(); // 新增：炮塔炸飞速度
-                this.turretRotVelocity = new THREE.Vector3(); // 新增：炮塔炸飞旋转动量
+                this.isDestroyed = false; // 损毁状态标记
+                this.turretVelocity = new THREE.Vector3(); // 炮塔炸飞速度
+                this.turretRotVelocity = new THREE.Vector3(); // 炮塔炸飞旋转动量
 
                 this.canMove = true;
                 this.canFire = true;
@@ -1627,7 +1736,6 @@
                 // 推入残骸系统列表
                 destroyedTanks.push(this);
                 
-                // 注：故意不使用 scene.remove() 和 collidables 移除
                 // 让燃烧的底盘和落地的炮塔成为永久的物理阻挡物掩体！
             }
 
@@ -1921,7 +2029,6 @@
                 this.turret.rotation.y = this.turretYaw;
 
                 // 计算相对于地形俯仰后的真实武器相对Pitch
-                // 将世界坐标的瞄准向量转换到炮塔本地坐标系
                 let inverseTurretQuat = this.turret.getWorldQuaternion(new THREE.Quaternion()).invert();
                 let localGunDir = gunDir.clone().applyQuaternion(inverseTurretQuat);
                 let targetPitch = Math.asin(Math.max(-1, Math.min(1, localGunDir.y)));
@@ -2494,9 +2601,9 @@
                 if (this.isBroken) return;
                 this.isBroken = true;
 
-                // 计算受力倒塌轴线 (将冲力投射在XZ平面，再与Y轴求叉乘)
+                // 计算受力倒塌轴线
                 let flatImpact = new THREE.Vector3(impactDir.x, 0, impactDir.z).normalize();
-                if (flatImpact.lengthSq() < 0.1) flatImpact.set(1, 0, 0); // 兜底保护
+                if (flatImpact.lengthSq() < 0.1) flatImpact.set(1, 0, 0); 
                 
                 let up = new THREE.Vector3(0, 1, 0);
                 this.fallAxis.crossVectors(up, flatImpact).normalize();
@@ -2505,44 +2612,39 @@
                 let inverseGroupQuat = this.group.quaternion.clone().invert();
                 this.fallAxis.applyQuaternion(inverseGroupQuat);
 
-                // 极大地减小初始动量，让大树断裂时有“缓缓倾倒”的沉重起势感
+                // 极大地减小初始动量
                 this.fallSpeed = 0.2; 
                 this.maxFallAngle = Math.PI / 2 - 0.1 + (Math.random() * 0.2); 
                 this.bounceCount = 0;
 
                 fallingTrees.push(this);
                 
-                // 在断裂处爆出一团木屑尘土 (传入木褐色)
+                // 在断裂处爆出一团木屑尘土
                 let cutPos = new THREE.Vector3(0, 1.2, 0);
                 this.group.localToWorld(cutPos);
                 createExplosion(cutPos, 1.0, 0x8b5a2b); 
             }
 
             updateFalling(dt) {
-                if (this.bounceCount > 2) return false; // 沉重地砸地几次后彻底停止计算
+                if (this.bounceCount > 2) return false;
 
-                // 物理重力加速：随着倾倒角度增大，受重力力矩影响，下坠速度呈指数加快
+                // 物理重力加速
                 this.fallSpeed += 12.0 * Math.sin(Math.max(0.1, this.fallAngle)) * dt; 
                 let step = this.fallSpeed * dt;
                 
                 if (this.fallAngle + step >= this.maxFallAngle) {
-                    // 预测本帧将穿模地面，卡住最大角度
                     step = this.maxFallAngle - this.fallAngle;
                     this.fallAngle = this.maxFallAngle;
                     
-                    // 首次触地瞬间的视觉反馈
                     if (this.bounceCount === 0) {
-                        // 巨大的树冠砸地，扬起大量的树叶与泥土混合的尘雾
                         let topPos = new THREE.Vector3(0, 10, 0);
                         this.fallingGroup.localToWorld(topPos);
                         createExplosion(topPos, 2.5, 0x4a5d23); 
                     }
                     
-                    // 模拟大质量物体撞击泥土地面的沉闷微弹 (反向动能且损耗 85% 能量)
                     this.fallSpeed = -this.fallSpeed * 0.15; 
                     this.bounceCount++;
                     
-                    // 如果弹跳动能已经微乎其微，直接强制休眠
                     if (Math.abs(this.fallSpeed) < 0.2) {
                         this.bounceCount = 3; 
                     }
@@ -2550,11 +2652,10 @@
                     this.fallAngle += step;
                 }
 
-                // 应用每帧的旋转增量
                 let rotDelta = new THREE.Quaternion().setFromAxisAngle(this.fallAxis, step);
                 this.fallingGroup.quaternion.premultiply(rotDelta);
                 
-                return true; // 继续执行倒塌与微弹计算
+                return true;
             }
         }
 
@@ -2647,16 +2748,21 @@
                 let hit = intersects.find(i => {
                     let obj = i.object;
                     let hitTank = null;
+                    let hitTree = null;
                     while(obj) {
-                        if (obj.userData && obj.userData.tank) {
-                            hitTank = obj.userData.tank;
-                            break;
-                        }
+                        if (obj.userData && obj.userData.tank) hitTank = obj.userData.tank;
+                        if (obj.userData && obj.userData.treeObj) hitTree = obj.userData.treeObj;
                         obj = obj.parent;
                     }
                     if (hitTank) {
                         if (this.isPlayerOwned && hitTank.isPlayer) return false;
                         if (!this.isPlayerOwned && !hitTank.isPlayer) return false;
+                    }
+                    // 如果命中了树，且这棵树已经倒塌，并且开启了穿透选项，则让射线直接穿透它（返回false不被find选中）
+                    if (hitTree) {
+                        if (hitTree.isBroken && gameSettings.treePenetration) {
+                            return false; 
+                        }
                     }
                     return true;
                 });
@@ -2681,7 +2787,6 @@
                     }
                     
                     if (tank) {
-                        // 遇到已阵亡的残骸，直接作为掩体吸收子弹并爆炸
                         if (tank.isDestroyed) {
                             createExplosion(this.mesh.position, this.isMissile ? 3 : 1);
                             return false;
@@ -2704,6 +2809,10 @@
 
                             if (result.killed) {
                                 showKillMessage("摧毁敌军坦克");
+                                // 增加计数
+                                destroyedEnemyCount++;
+                                updateKillCounterUI();
+
                                 let idx = enemies.indexOf(tank);
                                 if (idx > -1) enemies.splice(idx, 1);
                                 setTimeout(() => spawnEnemies(1), 3000);
@@ -2713,7 +2822,6 @@
                             createExplosion(this.mesh.position, 1.5);
                         }
                     } else if (tree) {
-                        // 炮弹命中树木，触发断裂
                         if (!tree.isBroken) {
                             let impactDir = this.velocity.clone().normalize();
                             tree.breakTree(impactDir);
@@ -2796,7 +2904,6 @@
             }
             groundGeo.computeVertexNormals();
 
-            // 为丘陵地带匹配暗绿色草地材质
             const groundMat = new THREE.MeshStandardMaterial({ 
                 color: 0x3a4b33, 
                 roughness: 1.0, 
@@ -2808,7 +2915,6 @@
             
             collidables.push(ground);
 
-            // 清空旧的障碍物数据
             buildings.length = 0;
 
             // 2. 生成程序化低多边形树木 (支持物理断裂)
@@ -2818,7 +2924,6 @@
                 let x = (Math.random() - 0.5) * 280;
                 let z = (Math.random() - 0.5) * 280;
 
-                // 避开玩家出生点
                 if (Math.abs(x) < 35 && Math.abs(z) < 35) continue;
 
                 let scale = 0.7 + Math.random() * 0.6;
@@ -2828,7 +2933,7 @@
             // 3. 硬件实例化生成草丛 (InstancedMesh 极大提升性能)
             const grassCount = 4000;
             const grassGeo = new THREE.ConeGeometry(0.3, 1.5, 3);
-            grassGeo.translate(0, 0.75, 0); // 将原点移到根部
+            grassGeo.translate(0, 0.75, 0); 
             const grassMat = new THREE.MeshStandardMaterial({ color: 0x4a6b33, roughness: 1.0, flatShading: true });
             const grassInstanced = new THREE.InstancedMesh(grassGeo, grassMat, grassCount);
             grassInstanced.receiveShadow = true;
@@ -2841,7 +2946,6 @@
                 
                 dummy.position.set(gx, gy, gz);
                 dummy.rotation.y = Math.random() * Math.PI * 2;
-                // 随风倾斜感
                 dummy.rotation.x = (Math.random() - 0.5) * 0.4; 
                 dummy.rotation.z = (Math.random() - 0.5) * 0.4;
 
@@ -2855,7 +2959,7 @@
 
             // 4. 硬件实例化生成岩石杂物
             const rockCount = 150;
-            const rockGeo = new THREE.DodecahedronGeometry(1, 0); // 低多边形石头
+            const rockGeo = new THREE.DodecahedronGeometry(1, 0); 
             const rockMat = new THREE.MeshStandardMaterial({ color: 0x6a6b63, roughness: 0.9, flatShading: true });
             const rockInstanced = new THREE.InstancedMesh(rockGeo, rockMat, rockCount);
             rockInstanced.castShadow = true;
@@ -2867,15 +2971,14 @@
                 if (Math.abs(rx) < 20 && Math.abs(rz) < 20) continue;
                 let ry = getTerrainHeight(rx, rz);
                 
-                dummy.position.set(rx, ry - 0.2, rz); // 稍微陷入地下
+                dummy.position.set(rx, ry - 0.2, rz); 
                 dummy.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
                 let rScale = 0.5 + Math.random() * 2.0;
-                dummy.scale.set(rScale, rScale * (0.5+Math.random()*0.5), rScale); // 压扁一点
+                dummy.scale.set(rScale, rScale * (0.5+Math.random()*0.5), rScale); 
                 
                 dummy.updateMatrix();
                 rockInstanced.setMatrixAt(i, dummy.matrix);
                 
-                // 较大的石头加入刚体碰撞
                 if (rScale > 1.5) {
                     buildings.push({
                         minX: rx - rScale, maxX: rx + rScale,
@@ -2885,7 +2988,7 @@
                 }
             }
             scene.add(rockInstanced);
-            collidables.push(rockInstanced); // 允许子弹打中石头产生爆炸
+            collidables.push(rockInstanced); 
         }
 
         function spawnEnemies(count) {
@@ -2937,12 +3040,10 @@
             const centerX = width / 2;
             const centerY = height / 2;
             
-            // 设定雷达映射范围 (世界大小 300x300 映射到 Canvas 宽)
             const mapScale = width / 300; 
 
             ctx.clearRect(0, 0, width, height);
 
-            // 画雷达圈与十字参考线
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -2954,7 +3055,6 @@
             ctx.moveTo(0, centerY); ctx.lineTo(width, centerY);
             ctx.stroke();
 
-            // 坐标转换器
             function toMap(x, z) {
                 return {
                     x: centerX + x * mapScale,
@@ -2962,7 +3062,6 @@
                 };
             }
 
-            // 画 D 点目标区域
             if (capturePoint) {
                 let pos = toMap(capturePoint.pos.x, capturePoint.pos.z);
                 ctx.beginPath();
@@ -2981,14 +3080,12 @@
                 ctx.fillText('D', pos.x, pos.y);
             }
 
-            // 画被摧毁的残骸区 (灰色小方块)
             ctx.fillStyle = '#666';
             for (let tank of destroyedTanks) {
                 let pos = toMap(tank.mesh.position.x, tank.mesh.position.z);
                 ctx.fillRect(pos.x - 2, pos.y - 2, 4, 4);
             }
 
-            // 画敌人 (红点)
             ctx.fillStyle = '#F44336';
             for (let e of enemies) {
                 if (e.hp > 0) {
@@ -2999,31 +3096,27 @@
                 }
             }
 
-            // 画玩家
             if (player && player.hp > 0) {
                 let pos = toMap(player.mesh.position.x, player.mesh.position.z);
                 
-                // 1. 视野扇形指示 (使用相机朝向)
                 ctx.save();
                 ctx.translate(pos.x, pos.y);
-                ctx.rotate(-cameraYaw); // 适配 WebGL 到 Canvas 的旋转差
+                ctx.rotate(-cameraYaw); 
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
                 ctx.beginPath();
                 ctx.moveTo(0, 0);
-                // Canvas 中 +Y 为下，Math.PI/2 代表正下方 (地图的 +Z 前方)
                 ctx.arc(0, 0, 40, Math.PI/2 - 0.4, Math.PI/2 + 0.4); 
                 ctx.closePath();
                 ctx.fill();
                 ctx.restore();
 
-                // 2. 玩家车体图标 (绿色三角箭头)
                 ctx.save();
                 ctx.translate(pos.x, pos.y);
                 ctx.rotate(-player.hullYaw); 
                 
                 ctx.fillStyle = '#4CAF50';
                 ctx.beginPath();
-                ctx.moveTo(0, 6);   // 尖端朝地图前方(+Z方向)
+                ctx.moveTo(0, 6);   
                 ctx.lineTo(-4, -4);
                 ctx.lineTo(4, -4);
                 ctx.closePath();
@@ -3051,7 +3144,6 @@
             if (player && player.hp > 0) {
                 player.update(dt);
             } else if (player && player.hp <= 0) {
-                // 隐藏常规UI和自毁UI
                 document.getElementById('mouse-aim').style.display = 'none';
                 document.getElementById('crosshair').style.display = 'none';
                 document.getElementById('sniper-hud').style.display = 'none';
@@ -3061,26 +3153,22 @@
                     camera.updateProjectionMatrix();
                 }
 
-                // 视角跟随飞天的炮塔
                 let turretPos = new THREE.Vector3();
                 player.turret.getWorldPosition(turretPos);
 
-                // 让相机围绕炮塔缓慢旋转，并略微抬高俯视
                 let time = performance.now() * 0.001;
                 camera.position.x = turretPos.x + Math.sin(time) * 15;
                 camera.position.z = turretPos.z + Math.cos(time) * 15;
                 camera.position.y = Math.max(turretPos.y + 8, getTerrainHeight(camera.position.x, camera.position.z) + 2);
                 camera.lookAt(turretPos);
 
-                // 检查炮塔是否落地 (物理计算中，落地后 turretVelocity 会被设为 0)
                 if (player.turretVelocity.lengthSq() === 0 && player.isDestroyed) {
                     if (player.respawnTimer === undefined) {
-                        player.respawnTimer = 3.0; // 落地后等3秒重生
+                        player.respawnTimer = 3.0; 
                         showKillMessage("准备重新部署...");
                     }
                     player.respawnTimer -= dt;
                     if (player.respawnTimer <= 0) {
-                        // 重生逻辑
                         let rx = (Math.random() - 0.5) * 80;
                         let rz = (Math.random() - 0.5) * 80;
                         player = new PlayerTank(rx, rz);
@@ -3110,7 +3198,6 @@
                 }
             }
             
-            // 更新树木倒塌动画
             for (let i = fallingTrees.length - 1; i >= 0; i--) {
                 if (!fallingTrees[i].updateFalling(dt)) {
                     fallingTrees.splice(i, 1);
@@ -3124,7 +3211,6 @@
                 }
             }
 
-            // 更新火焰喷发粒子系统
             for (let i = fireClouds.length - 1; i >= 0; i--) {
                 if (!fireClouds[i].update(dt)) {
                     fireClouds[i].destroy();
@@ -3132,25 +3218,40 @@
                 }
             }
 
-            // 更新残骸物理效果 (计算被炸飞的炮塔坠落)
-            for (let tank of destroyedTanks) {
+            // 更新残骸物理效果与衰减消失机制 (计算被炸飞的炮塔坠落)
+            for (let i = destroyedTanks.length - 1; i >= 0; i--) {
+                let tank = destroyedTanks[i];
+                
+                // 处理残骸自动消失逻辑
+                if (gameSettings.wreckageDecay > 0) {
+                    if (tank.decayTimer === undefined) tank.decayTimer = 0;
+                    tank.decayTimer += dt;
+                    if (tank.decayTimer >= gameSettings.wreckageDecay) {
+                        // 彻底清理渲染对象
+                        scene.remove(tank.mesh);
+                        scene.remove(tank.turret);
+                        // 清理物理碰撞体，防止空气墙
+                        collidables = collidables.filter(c => c !== tank.hull && c !== tank.turret);
+                        // 移出残骸列表
+                        destroyedTanks.splice(i, 1);
+                        continue; // 这具残骸已被销毁，跳过后续坠落计算
+                    }
+                }
+
                 if (tank.turretVelocity.lengthSq() > 0) {
-                    // 施加沉重的重力加速 (调低至 6，配合极小的初速度，实现电影慢镜头般的厚重滞空感)
                     tank.turretVelocity.y -= 6 * dt; 
                     tank.turret.position.add(tank.turretVelocity.clone().multiplyScalar(dt));
                     
-                    // 凌空翻滚
                     tank.turret.rotation.x += tank.turretRotVelocity.x * dt;
                     tank.turret.rotation.y += tank.turretRotVelocity.y * dt;
                     tank.turret.rotation.z += tank.turretRotVelocity.z * dt;
                     
-                    // 炮塔砸落地面判断
                     let terrainY = getTerrainHeight(tank.turret.position.x, tank.turret.position.z);
                     if (tank.turret.position.y <= terrainY + 0.5) { 
                         tank.turret.position.y = terrainY + 0.5;
                         tank.turretVelocity.set(0, 0, 0); 
                         tank.turretRotVelocity.set(0, 0, 0);
-                        createExplosion(tank.turret.position, 4); // 砸落地面扬起尘土
+                        createExplosion(tank.turret.position, 4); 
                     }
                 }
             }
