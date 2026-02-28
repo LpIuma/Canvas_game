@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-<!-- Google tag (gtag.js) -->
+    <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-KG8ZVLRZ00"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -13,7 +13,7 @@
           'page_path': 'window.location.pathname'
       });
     </script>
-    
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BMPT 模拟器</title>
@@ -1767,6 +1767,38 @@
                         return true; // 依然会被岩石阻挡
                     }
                 }
+                
+                // --- 新增：坦克之间的动态物理碰撞 (圆柱体碰撞算法) ---
+                let minDistSq;
+                
+                // 1. 与玩家的碰撞判定
+                if (player && player !== this && player.hp > 0) {
+                    let dx = newPos.x - player.mesh.position.x;
+                    let dz = newPos.z - player.mesh.position.z;
+                    minDistSq = (this.radius + player.radius) * (this.radius + player.radius);
+                    if (dx*dx + dz*dz < minDistSq) return true;
+                }
+                
+                // 2. 与敌方坦克的碰撞判定
+                for (let e of enemies) {
+                    if (e !== this && e.hp > 0) {
+                        let dx = newPos.x - e.mesh.position.x;
+                        let dz = newPos.z - e.mesh.position.z;
+                        minDistSq = (this.radius + e.radius) * (this.radius + e.radius);
+                        if (dx*dx + dz*dz < minDistSq) return true;
+                    }
+                }
+                
+                // 3. 与所有遗留的装甲残骸的碰撞判定
+                for (let t of destroyedTanks) {
+                    if (t !== this) {
+                        let dx = newPos.x - t.mesh.position.x;
+                        let dz = newPos.z - t.mesh.position.z;
+                        minDistSq = (this.radius + t.radius) * (this.radius + t.radius);
+                        if (dx*dx + dz*dz < minDistSq) return true;
+                    }
+                }
+
                 // 边界碰撞
                 if(Math.abs(newPos.x) > 145 || Math.abs(newPos.z) > 145) return true;
                 return false;
