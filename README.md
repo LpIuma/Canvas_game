@@ -15,9 +15,9 @@
 
 | 游戏名称 | 简介 |
 | :--- | :--- |
-| **2048** | 加入了一些自制鬼图  |
-| **BMPT 模拟器** |  驾驶 BMPT 进攻D点 |
-| **ShitSweeper** |  互联网扫雷，每次点击有概率观看视频，雷则是答辩视频 |
+| **2048** | 加入了一些自制鬼图（创意来自[@JustJokerr](https://github.com/JustJokerr)）  |
+| **BMPT 模拟器** |  驾驶 BMPT 上市西方朋友并进攻D点 |
+| **ShitSweeper** |  互联网扫雷，每次点击有概率观看视频，雷则是答辩视频（屎壳郎[@JustJokerr](https://github.com/JustJokerr)） |
 
 ---
 
@@ -39,3 +39,9 @@ Canvas_game/
     ├── BMPT/           # BMPT 模拟器源码
     └── ShitSweeper/    # 互联网扫雷 (ShitSweeper) 源码
 ```
+### 🤝 鸣谢
+感谢以下开发者的灵感支持：
+<a href="https://github.com/JustJokerr">
+  <img src="https://github.com/JustJokerr.png" width="30px" style="border-radius:50%"> 
+  @JustJokerr
+</a>
