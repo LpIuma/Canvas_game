@@ -40,11 +40,38 @@
             pointer-events: none;
             display: none;
         }
-        /* 击毁统计计数器 - 左上角 */
-        #kill-counter {
+        /* 设置/暂停按钮 - 左上角 */
+        #settings-btn {
             position: absolute;
             top: 20px;
             left: 20px;
+            width: 44px;
+            height: 38px;
+            color: #fff;
+            font-size: 22px;
+            background: rgba(10, 10, 10, 0.7);
+            border-left: 4px solid #FFC107;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            pointer-events: auto;
+            z-index: 40;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            transition: all 0.2s;
+        }
+        #settings-btn:hover {
+            background: rgba(60, 60, 60, 0.8);
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(255, 193, 7, 0.3);
+        }
+
+        /* 击毁统计计数器 - 位于设置按钮右侧 */
+        #kill-counter {
+            position: absolute;
+            top: 20px;
+            left: 80px; /* 从 20px 右移，给设置按钮留出空间 */
             color: #fff;
             font-family: monospace;
             font-size: 18px;
@@ -377,7 +404,7 @@
         /* 小地图 */
         #minimap {
             position: absolute;
-            bottom: 30px;
+            top: 30px; /* 从 bottom 改为 top */
             right: 30px;
             width: 160px;
             height: 160px;
@@ -438,25 +465,46 @@
             align-items: center;
             color: white;
             z-index: 100;
+            overflow-y: auto; /* 允许溢出时上下滚动 */
         }
+        
+        /* 新增：内容横向排列容器 */
+        .start-content-row {
+            display: flex;
+            flex-direction: row;
+            gap: 40px;
+            max-width: 960px;
+            margin-bottom: 30px;
+            align-items: stretch;
+        }
+
         h1 { font-size: 48px; color: #4CAF50; margin-bottom: 10px; }
+        
         .instructions {
             background: rgba(255,255,255,0.1);
-            padding: 20px;
+            padding: 20px 30px;
             border-radius: 10px;
-            margin-bottom: 30px;
+            margin-bottom: 0; /* 由行容器接管底部边距 */
             line-height: 1.6;
             text-align: center;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
         
         /* 战场设置面板 */
         .settings-panel {
             background: rgba(0, 0, 0, 0.6);
             border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 15px 25px;
+            padding: 20px 30px;
             border-radius: 8px;
-            margin-bottom: 20px;
+            margin-bottom: 0; /* 由行容器接管底部边距 */
             text-align: left;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
         .settings-panel h3 {
             margin-top: 0;
@@ -471,19 +519,25 @@
             margin-bottom: 12px;
             font-size: 16px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 320px;
+            flex-direction: column; /* 左右并排后空间变窄，改为上下排列标签和下拉框 */
+            align-items: flex-start;
+            width: 100%;
+        }
+        .settings-item label {
+            margin-bottom: 6px;
+            color: #ddd;
         }
         .settings-item select {
             background: #222;
             color: #fff;
             border: 1px solid #555;
-            padding: 4px 8px;
+            padding: 6px 8px;
             border-radius: 4px;
             font-family: inherit;
             cursor: pointer;
             outline: none;
+            width: 100%;
+            box-sizing: border-box;
         }
         .settings-item select:focus {
             border-color: #4CAF50;
@@ -561,11 +615,13 @@
         #btn-fire { bottom: 40px; right: 40px; width: 90px; height: 90px; background: rgba(255,0,0,0.4); border-color: #ff5252;}
         #btn-missile { bottom: 150px; right: 40px; width: 70px; height: 70px; background: rgba(255,152,0,0.4); border-color: #ff9800;}
         #btn-sniper { bottom: 40px; right: 150px; width: 60px; height: 60px; }
+        #btn-rate { bottom: 130px; right: 130px; width: 50px; height: 50px; font-size: 14px; font-weight: bold; }
         
-        #btn-smoke { top: 20px; right: 90px; width: 50px; height: 50px; font-size: 18px;}
-        #btn-repair { top: 20px; right: 20px; width: 50px; height: 50px; font-size: 18px;}
-        #btn-radio { top: 20px; left: 20px; width: 50px; height: 50px; font-size: 18px;}
-        #btn-lrf { top: 80px; left: 20px; width: 50px; height: 50px; font-size: 16px; font-weight: bold;}
+        /* 移动端底部战术工具行 (烟雾、维修、无线电、自爆) */
+        #btn-smoke { bottom: 20px; left: 50%; transform: translateX(-50%); margin-left: -110px; width: 50px; height: 50px; font-size: 18px;}
+        #btn-repair { bottom: 20px; left: 50%; transform: translateX(-50%); margin-left: -40px; width: 50px; height: 50px; font-size: 18px;}
+        #btn-radio { bottom: 20px; left: 50%; transform: translateX(-50%); margin-left: 40px; width: 50px; height: 50px; font-size: 18px;}
+        #btn-self { bottom: 20px; left: 50%; transform: translateX(-50%); margin-left: 110px; width: 50px; height: 50px; font-size: 18px; border-color: #f44336; }
 
         .m-ammo {
             position: absolute; bottom: 5px; right: 5px; font-size: 12px; font-family: monospace;
@@ -583,12 +639,25 @@
             #wt-status-panel { bottom: 180px; left: 20px; transform: scale(0.7); transform-origin: bottom left; }
             #chat-feed { bottom: auto; top: 80px; left: 20px; font-size: 12px; }
             #kill-feed { bottom: auto; top: 20px; right: 160px; font-size: 12px; }
-            #minimap { width: 120px; height: 120px; bottom: 20px; right: 20px; }
-            .instructions { font-size: 14px; padding: 10px; margin-bottom: 15px;}
-            h1 { font-size: 32px; }
+            #minimap { width: 120px; height: 120px; top: 20px; right: 20px; bottom: auto; }
+            
+            /* 彻底修复移动端屏幕过矮导致按钮被截断不可点的问题 */
+            #start-screen { justify-content: flex-start; padding: 20px 0; }
+            .start-content-row { gap: 15px; margin-bottom: 15px; padding: 0 20px; }
+            .instructions { font-size: 12px; padding: 10px; }
+            .settings-panel { padding: 10px; }
+            .settings-panel h3 { font-size: 15px; margin-bottom: 8px; }
+            .settings-item { font-size: 13px; margin-bottom: 6px; width: 100%; }
+            .settings-item select { margin-top: 2px; padding: 4px; }
+            h1 { font-size: 28px; margin-top: 10px; margin-bottom: 5px; }
+            button { padding: 10px 30px; font-size: 18px; margin-bottom: 20px; flex-shrink: 0; }
         }
         @media (max-width: 900px) and (orientation: portrait) {
-            #start-screen { justify-content: flex-start; padding-top: 20%; }
+            #start-screen { justify-content: flex-start; padding-top: 15%; padding-bottom: 20px; }
+            .start-content-row { flex-direction: column; gap: 15px; align-items: center; width: 100%; }
+            .instructions { font-size: 13px; width: 85%; box-sizing: border-box; }
+            .settings-panel { width: 85%; box-sizing: border-box; }
+            .settings-item select { margin-top: 5px; width: 100%; }
             #start-screen::after {
                 content: "为了获得最佳体验，请旋转手机至横屏";
                 color: #ff9800; font-weight: bold; margin-top: 20px; font-size: 18px; text-align: center;
@@ -600,6 +669,9 @@
     <canvas id="game-canvas"></canvas>
     
     <div id="ui-layer">
+        <!-- 设置按钮 -->
+        <div id="settings-btn" title="设置 / 暂停">⚙️</div>
+
         <!-- 击毁敌军坦克数量显示 -->
         <div id="kill-counter">上市的西方朋友：0</div>
 
@@ -732,48 +804,60 @@
             <div id="btn-fire" class="mobile-btn">☄️<div class="m-ammo" id="m-ammo-gun-m"></div></div>
             <div id="btn-missile" class="mobile-btn">🚀<div class="m-ammo" id="m-ammo-missile-m"></div><div class="m-cooldown" id="m-cd-missile-m"></div></div>
             <div id="btn-sniper" class="mobile-btn">👁️</div>
-            <div id="btn-rate" class="mobile-btn" style="bottom: 130px; right: 130px; width: 50px; height: 50px; font-size: 14px; font-weight: bold;">射速</div>
+            <div id="btn-rate" class="mobile-btn">射速</div>
             
             <div id="btn-smoke" class="mobile-btn">💨<div class="m-ammo" id="m-ammo-smoke-m"></div><div class="m-cooldown" id="m-cd-smoke-m"></div></div>
             <div id="btn-repair" class="mobile-btn">🔧<div class="m-ammo" id="m-ammo-repair-m"></div><div class="m-cooldown" id="m-cd-repair-m"></div></div>
             <div id="btn-radio" class="mobile-btn">📻</div>
-            <div id="btn-lrf" class="mobile-btn">LRF</div>
+            <div id="btn-self" class="mobile-btn">💥</div>
         </div>
-    </div>
+    </div> <!-- 这里补充了缺失的 ui-layer 闭合标签，修复黑屏 -->
 
     <div id="start-screen">
         <h1>BMPT 模拟器</h1>
-        <div class="instructions">
-            <strong>操作指南：</strong><br>
-            [W] [A] [S] [D] - 控制车体移动与转向<br>
-            [鼠标移动] - 旋转视角与炮塔<br>
-            <strong>[按住 C] - 自由视角，锁定炮塔朝向</strong><br>
-            [鼠标左键] - 2A42 机炮 | [鼠标右键] - 9M120 导弹<br>
-            [E] - 切换机炮射速 (低/中/高)<br>
-            [Q] - 激光测距与火控校准 (弹道补偿)<br>
-            [G] - 释放烟雾弹 | [F] - 修理套件<br>
-            [Shift] - 切换 炮镜视角 | [T] - 无线电消息<br>
-            <strong>[长按 J] - 3秒自爆与重新部署</strong><br><br>
-            全新起伏地形与环境光照！利用地形优势消灭敌人！
-        </div>
-
-        <!-- 战场设置选项 -->
-        <div class="settings-panel">
-            <h3>战场设置 (按 ESC 呼出)</h3>
-            <div class="settings-item">
-                <label>残骸自动消失</label>
-                <select id="set-wreckage">
-                    <option value="0">关 (永久作为掩体)</option>
-                    <option value="30">30秒后消失</option>
-                    <option value="60">60秒后消失</option>
-                </select>
+        
+        <div class="start-content-row">
+            <!-- 战场设置选项 (左侧) -->
+            <div class="settings-panel">
+                <h3>战场设置 (按 ESC 呼出)</h3>
+                <div class="settings-item">
+                    <label>游戏难度</label>
+                    <select id="set-difficulty">
+                        <option value="arcade">街机娱乐</option>
+                        <option value="realistic">历史性能</option>
+                        <option value="simulator">全真模拟</option>
+                    </select>
+                </div>
+                <div class="settings-item">
+                    <label>残骸自动消失</label>
+                    <select id="set-wreckage">
+                        <option value="0">关 (永久作为掩体)</option>
+                        <option value="30">30秒后消失</option>
+                        <option value="60">60秒后消失</option>
+                    </select>
+                </div>
+                <div class="settings-item">
+                    <label>弹药穿透倒塌树木</label>
+                    <select id="set-penetration">
+                        <option value="0">关 (依然阻挡)</option>
+                        <option value="1">开 (可以穿透)</option>
+                    </select>
+                </div>
             </div>
-            <div class="settings-item">
-                <label>弹药穿透倒塌树木</label>
-                <select id="set-penetration">
-                    <option value="0">关 (依然阻挡)</option>
-                    <option value="1">开 (可以穿透)</option>
-                </select>
+
+            <!-- 操作指南 (右侧) -->
+            <div class="instructions">
+                <strong>操作指南：</strong><br><br>
+                [W] [A] [S] [D] - 控制车体移动与转向<br>
+                [鼠标移动] - 旋转视角与炮塔<br>
+                <strong>[按住 C] - 自由视角，锁定炮塔朝向</strong><br>
+                [鼠标左键] - 2A42 机炮 | [鼠标右键] - 9M120 导弹<br>
+                [E] - 切换机炮射速 (低/中/高)<br>
+                [Q] - 激光测距与火控校准 (弹道补偿)<br>
+                [G] - 释放烟雾弹 | [F] - 修理套件<br>
+                [Shift] - 切换 炮镜视角 | [T] - 无线电消息<br>
+                <strong>[长按 J] - 3秒自爆与重新部署</strong><br><br>
+                全新起伏地形与环境光照！利用地形优势消灭敌人！
             </div>
         </div>
 
@@ -1082,8 +1166,10 @@
         let analogMove = 0; 
         let analogTurn = 0;
 
-        const PLAYER_MAX_HP = 2000;
-        const ENEMY_MAX_HP = 200;
+        // 将常量改为动态变量以支持难度调整
+        let PLAYER_MAX_HP = 2000;
+        let ENEMY_MAX_HP = 200;
+        let PLAYER_MISSILE_DAMAGE = 250; // 新增：动态导弹伤害，默认匹配街机/历史的单发伤害
         const MISSILE_COOLDOWN = 2.5;
 
         function init() {
@@ -1127,7 +1213,60 @@
 
             spawnEnemies(8);
 
+            // 绑定设置按钮功能：兼容 PC 端(解除指针锁定)与移动端(直接触发暂停逻辑)
+            const settingsBtn = document.getElementById('settings-btn');
+            const openSettings = (e) => {
+                e.stopPropagation();
+                if (e.cancelable) e.preventDefault(); // 防止移动端同时触发 touch 和 click
+                
+                if (isMobileMode) {
+                    // 移动端暂停逻辑
+                    document.getElementById('start-screen').style.display = 'flex';
+                    document.getElementById('ui-layer').style.display = 'none';
+                    document.getElementById('start-btn').innerText = (player && player.hp > 0) ? "继续战斗" : "点击进入战场";
+                    isGameRunning = false;
+                } else if (document.pointerLockElement === document.body) {
+                    // PC 端暂停逻辑
+                    document.exitPointerLock();
+                }
+            };
+            settingsBtn.addEventListener('click', openSettings);
+            settingsBtn.addEventListener('touchstart', openSettings, { passive: false });
+
             // 绑定设置界面的事件监听
+            document.getElementById('set-difficulty').addEventListener('change', (e) => {
+                const mode = e.target.value;
+                if (mode === 'arcade') {
+                    PLAYER_MAX_HP = 2000;
+                    ENEMY_MAX_HP = 200;
+                    PLAYER_MISSILE_DAMAGE = 250; // 街机难度下保证一发摧毁(200血量)
+                } else if (mode === 'realistic') {
+                    PLAYER_MAX_HP = 500;
+                    ENEMY_MAX_HP = 500;
+                    PLAYER_MISSILE_DAMAGE = 250; // 历史难度: 500 HP / 250 伤害 = 2发摧毁
+                } else if (mode === 'simulator') {
+                    PLAYER_MAX_HP = 200;
+                    ENEMY_MAX_HP = 2000;
+                    PLAYER_MISSILE_DAMAGE = 500; // 全真难度: 2000 HP / 500 伤害 = 4发摧毁
+                }
+                
+                // 动态调整当前玩家的血量上限，并按比例等比缩放当前血量
+                if (player && player.hp > 0) {
+                    let ratio = player.hp / player.maxHp;
+                    player.maxHp = PLAYER_MAX_HP;
+                    player.hp = Math.max(1, player.maxHp * ratio);
+                }
+                
+                // 动态调整当前所有存活敌军的血量上限
+                for (let enemy of enemies) {
+                    if (enemy.hp > 0) {
+                        let ratio = enemy.hp / enemy.maxHp;
+                        enemy.maxHp = ENEMY_MAX_HP;
+                        enemy.hp = Math.max(1, enemy.maxHp * ratio);
+                    }
+                }
+            });
+            
             document.getElementById('set-wreckage').addEventListener('change', (e) => {
                 gameSettings.wreckageDecay = parseInt(e.target.value);
             });
@@ -1345,8 +1484,54 @@
             aimArea.addEventListener('touchend', resetAim, {passive: false});
             aimArea.addEventListener('touchcancel', resetAim, {passive: false});
 
+            // --- 给开火键加入摇杆/滑动压枪功能 ---
+            const btnFire = document.getElementById('btn-fire');
+            let fireTouchId = null;
+            let lastFireX = 0, lastFireY = 0;
+
+            btnFire.addEventListener('touchstart', e => {
+                e.preventDefault(); e.stopPropagation();
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (fireTouchId === null) {
+                        fireTouchId = e.changedTouches[i].identifier;
+                        lastFireX = e.changedTouches[i].clientX;
+                        lastFireY = e.changedTouches[i].clientY;
+                        if (isGameRunning) mouse.leftDown = true;
+                    }
+                }
+            }, {passive: false});
+
+            btnFire.addEventListener('touchmove', e => {
+                e.preventDefault(); e.stopPropagation();
+                if (!isGameRunning) return;
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === fireTouchId) {
+                        let dx = e.changedTouches[i].clientX - lastFireX;
+                        let dy = e.changedTouches[i].clientY - lastFireY;
+                        cameraYaw -= dx * 0.003;
+                        cameraPitch -= dy * 0.003;
+                        cameraPitch = Math.max(-Math.PI/4, Math.min(Math.PI/3, cameraPitch));
+                        lastFireX = e.changedTouches[i].clientX;
+                        lastFireY = e.changedTouches[i].clientY;
+                    }
+                }
+            }, {passive: false});
+
+            const resetFire = (e) => {
+                e.preventDefault(); e.stopPropagation();
+                for (let i = 0; i < e.changedTouches.length; i++) {
+                    if (e.changedTouches[i].identifier === fireTouchId) {
+                        fireTouchId = null;
+                        mouse.leftDown = false;
+                    }
+                }
+            };
+            btnFire.addEventListener('touchend', resetFire, {passive: false});
+            btnFire.addEventListener('touchcancel', resetFire, {passive: false});
+
             const bindBtn = (id, onDown, onUp) => {
                 const btn = document.getElementById(id);
+                if (!btn) return;
                 btn.addEventListener('touchstart', e => { e.preventDefault(); e.stopPropagation(); onDown(); }, {passive: false});
                 if (onUp) {
                     btn.addEventListener('touchend', e => { e.preventDefault(); e.stopPropagation(); onUp(); }, {passive: false});
@@ -1354,7 +1539,6 @@
                 }
             };
 
-            bindBtn('btn-fire', () => { if(isGameRunning) mouse.leftDown = true; }, () => mouse.leftDown = false);
             bindBtn('btn-missile', () => { if(isGameRunning) { mouse.rightDown = true; if(player) player.fireMissile(); } }, () => mouse.rightDown = false);
             bindBtn('btn-sniper', () => { if(isGameRunning) { isSniperMode = !isSniperMode; updateCameraMode(); } });
             bindBtn('btn-rate', () => { if(isGameRunning && player) player.toggleFireRate(); });
@@ -1366,7 +1550,7 @@
                     renderRadioMenu();
                 } 
             });
-            bindBtn('btn-lrf', () => { if(isGameRunning && player) player.useLRF(); });
+            bindBtn('btn-self', () => { if(isGameRunning) keys.j = true; }, () => { keys.j = false; });
         }
 
         function updateCameraMode() {
@@ -2294,7 +2478,8 @@
                     let upDir = new THREE.Vector3(0, 1, 0).applyQuaternion(this.weapons.getWorldQuaternion(new THREE.Quaternion())).normalize();
                     spawnPos.add(upDir.multiplyScalar(heightOffset));
                     
-                    projectiles.push(new Projectile(spawnPos, fireDir, 80, 150, true, 0xff3300, 0.5, true));
+                    // 应用动态导弹伤害 PLAYER_MISSILE_DAMAGE
+                    projectiles.push(new Projectile(spawnPos, fireDir, 80, PLAYER_MISSILE_DAMAGE, true, 0xff3300, 0.5, true));
                     
                     this.missilesInClip--;
                     if (this.missilesInClip === 0) {
@@ -2313,6 +2498,7 @@
                 
                 this.uiElement = document.createElement('div');
                 this.uiElement.className = 'enemy-hp';
+                this.uiElement.id = `enemy-hp-${Math.random().toString(36).substr(2, 9)}`;
                 this.uiInner = document.createElement('div');
                 this.uiInner.className = 'enemy-hp-inner';
                 this.uiElement.appendChild(this.uiInner);
@@ -2397,11 +2583,12 @@
 
                     let now = performance.now() / 1000;
                     if (now - this.lastFire > this.fireRate && this.canFire) { 
-                        // AI 加入一定的随机散布
+                        // 极大提高AI的精准度：将 X 和 Z 轴的散布从 0.08 降至 0.015，
+                        // Y 轴(垂直弹道)的随机扰动降至 0.01，并保留 0.04 的重力下坠提前量补偿
                         let aimDir = player.mesh.position.clone().sub(this.mesh.position).normalize();
-                        aimDir.x += (Math.random()-0.5)*0.08;
-                        aimDir.y += 0.05 + (Math.random()-0.5)*0.05; 
-                        aimDir.z += (Math.random()-0.5)*0.08;
+                        aimDir.x += (Math.random()-0.5)*0.015;
+                        aimDir.y += 0.04 + (Math.random()-0.5)*0.01; 
+                        aimDir.z += (Math.random()-0.5)*0.015;
                         aimDir.normalize();
 
                         let spawnPos = new THREE.Vector3();
