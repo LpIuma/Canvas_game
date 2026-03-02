@@ -811,7 +811,7 @@
             <div id="btn-radio" class="mobile-btn">📻</div>
             <div id="btn-self" class="mobile-btn">💥</div>
         </div>
-    </div> <!-- 这里补充了缺失的 ui-layer 闭合标签，修复黑屏 -->
+    </div>
 
     <div id="start-screen">
         <h1>BMPT 模拟器</h1>
@@ -2012,7 +2012,7 @@
                 let lZ = this.mesh.position.z + Math.sin(this.hullYaw) * rDist;
                 let hRight = getTerrainHeight(rX, rZ);
                 let hLeft  = getTerrainHeight(lX, lZ);
-                let targetRoll = Math.atan2(hLeft - hRight, rDist * 2);
+                let targetRoll = Math.atan2(hRight - hLeft, rDist * 2);
 
                 // 平滑过渡，应用到车体和炮塔的 X(Pitch) 与 Z(Roll)
                 let alignSpeed = 8 * dt;
