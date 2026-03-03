@@ -71,7 +71,7 @@
         #kill-counter {
             position: absolute;
             top: 20px;
-            left: 80px; /* 从 20px 右移，给设置按钮留出空间 */
+            left: 80px; 
             color: #fff;
             font-family: monospace;
             font-size: 18px;
@@ -85,7 +85,7 @@
             z-index: 30;
             pointer-events: none;
         }
-        /* 相机中心指示点 (鼠标意图) - 战争雷霆风格的大虚线牵引圈 */
+        /* 相机中心指示点 */
         #mouse-aim {
             position: absolute;
             top: 50%;
@@ -98,7 +98,7 @@
             pointer-events: none;
             display: none;
         }
-        /* 准星 (动态指示机炮物理落点) - 实心圆圈加点 */
+        /* 准星 */
         #crosshair {
             position: absolute;
             top: 50%;
@@ -179,7 +179,44 @@
             transform: translateX(-50%);
         }
 
-        /* --- 战争雷霆风格：左下角状态面板 --- */
+        /* --- Boss 专属大血条 --- */
+        #boss-ui {
+            position: absolute;
+            top: 85px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 400px;
+            max-width: 90%;
+            text-align: center;
+            z-index: 50;
+            display: none;
+            pointer-events: none;
+        }
+        .boss-name {
+            color: #ff3300;
+            font-weight: bold;
+            font-size: 20px;
+            text-shadow: 1px 1px 2px #000, 0 0 10px red;
+            margin-bottom: 5px;
+            font-family: monospace;
+        }
+        .boss-bar-bg {
+            width: 100%;
+            height: 16px;
+            background: rgba(0,0,0,0.8);
+            border: 2px solid #555;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 10px #000;
+        }
+        #boss-hp-fill {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff0000, #ff8800);
+            transition: width 0.2s linear;
+        }
+
+        /* --- 左下角状态面板 --- */
         #wt-status-panel {
             position: absolute;
             bottom: 30px;
@@ -208,7 +245,6 @@
             transform: rotate(-90deg);
             pointer-events: none;
         }
-        /* 车体线框 */
         #wt-hull {
             width: 36px;
             height: 60px;
@@ -217,7 +253,6 @@
             position: absolute;
             transition: border-color 0.3s;
         }
-        /* 炮塔与炮管线框 */
         #wt-turret {
             width: 20px;
             height: 20px;
@@ -251,7 +286,7 @@
             font-size: 12px;
         }
         
-        /* --- 战争雷霆风格：底部物品栏 --- */
+        /* --- 底部物品栏 --- */
         #action-bar {
             position: absolute;
             bottom: 30px;
@@ -324,7 +359,7 @@
             z-index: 3;
         }
 
-        /* --- 无线电消息栏 (Radio Menu) --- */
+        /* --- 无线电消息栏 --- */
         #radio-menu {
             position: absolute;
             bottom: 120px;
@@ -390,7 +425,7 @@
         /* 击杀提示 */
         #kill-feed {
             position: absolute;
-            bottom: 210px; /* 从 30px 上移，给小地图让位 */
+            bottom: 210px; 
             right: 30px;
             color: #FF5252;
             font-weight: bold;
@@ -404,7 +439,7 @@
         /* 小地图 */
         #minimap {
             position: absolute;
-            top: 30px; /* 从 bottom 改为 top */
+            top: 30px; 
             right: 30px;
             width: 160px;
             height: 160px;
@@ -465,10 +500,9 @@
             align-items: center;
             color: white;
             z-index: 100;
-            overflow-y: auto; /* 允许溢出时上下滚动 */
+            overflow-y: auto; 
         }
         
-        /* 新增：内容横向排列容器 */
         .start-content-row {
             display: flex;
             flex-direction: row;
@@ -484,7 +518,7 @@
             background: rgba(255,255,255,0.1);
             padding: 20px 30px;
             border-radius: 10px;
-            margin-bottom: 0; /* 由行容器接管底部边距 */
+            margin-bottom: 0; 
             line-height: 1.6;
             text-align: center;
             flex: 1;
@@ -499,7 +533,7 @@
             border: 1px solid rgba(255, 255, 255, 0.2);
             padding: 20px 30px;
             border-radius: 8px;
-            margin-bottom: 0; /* 由行容器接管底部边距 */
+            margin-bottom: 0; 
             text-align: left;
             flex: 1;
             display: flex;
@@ -519,7 +553,7 @@
             margin-bottom: 12px;
             font-size: 16px;
             display: flex;
-            flex-direction: column; /* 左右并排后空间变窄，改为上下排列标签和下拉框 */
+            flex-direction: column; 
             align-items: flex-start;
             width: 100%;
         }
@@ -641,7 +675,6 @@
             #kill-feed { bottom: auto; top: 20px; right: 160px; font-size: 12px; }
             #minimap { width: 120px; height: 120px; top: 20px; right: 20px; bottom: auto; }
             
-            /* 彻底修复移动端屏幕过矮导致按钮被截断不可点的问题 */
             #start-screen { justify-content: flex-start; padding: 20px 0; }
             .start-content-row { gap: 15px; margin-bottom: 15px; padding: 0 20px; }
             .instructions { font-size: 12px; padding: 10px; }
@@ -674,6 +707,14 @@
 
         <!-- 击毁敌军坦克数量显示 -->
         <div id="kill-counter">上市的西方朋友：0</div>
+
+        <!-- Boss UI -->
+        <div id="boss-ui">
+            <div class="boss-name">T58 </div>
+            <div class="boss-bar-bg">
+                <div id="boss-hp-fill"></div>
+            </div>
+        </div>
 
         <div id="mouse-aim"></div>
         <div id="crosshair"></div>
@@ -737,7 +778,7 @@
             <div class="radio-title">无线电消息</div>
         </div>
 
-        <!-- 战争雷霆风格：左下角坦克姿态状态栏 -->
+        <!-- 左下角坦克姿态状态栏 -->
         <div id="wt-status-panel">
             <div class="wt-circle-bg">
                 <svg id="wt-hp-svg" width="120" height="120">
@@ -753,14 +794,12 @@
         
         <!-- 屏幕正下方物品栏 -->
         <div id="action-bar">
-            <!-- 30mm 机炮 -->
             <div class="action-slot">
                 <div class="action-key">LMB / E</div>
                 <div class="action-name">2A42</div>
                 <div class="action-icon">☄️</div>
                 <div class="action-count" id="ui-ammo-gun">∞ [中]</div>
             </div>
-            <!-- 导弹 -->
             <div class="action-slot">
                 <div class="action-key">RMB</div>
                 <div class="action-name">9M120 "攻击"</div>
@@ -768,7 +807,6 @@
                 <div class="action-count" id="ui-ammo-missile">4</div>
                 <div class="cooldown-overlay" id="ui-cooldown-missile"></div>
             </div>
-            <!-- 烟雾弹 -->
             <div class="action-slot">
                 <div class="action-key">G</div>
                 <div class="action-name">烟雾弹</div>
@@ -776,7 +814,6 @@
                 <div class="action-count" id="ui-ammo-smoke">4</div>
                 <div class="cooldown-overlay" id="ui-cooldown-smoke"></div>
             </div>
-            <!-- 修车 -->
             <div class="action-slot">
                 <div class="action-key">F</div>
                 <div class="action-name">修理套件</div>
@@ -869,22 +906,221 @@
     <script>
         document.addEventListener('contextmenu', event => event.preventDefault());
 
+        // ==========================================
+        // Web Audio API 程序化音效系统 (纯代码合成，无外部资源)
+        // ==========================================
+        const SoundManager = {
+            ctx: null,
+            noiseBuffer: null,
+            
+            init: function() {
+                if (this.ctx) return;
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+                
+                const bufferSize = this.ctx.sampleRate * 2.0; 
+                this.noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const output = this.noiseBuffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+            },
+            
+            getSpatialParams: function(pos) {
+                if (!this.ctx || !camera) return { vol: 1, pan: 0 };
+                let dist = camera.position.distanceTo(pos);
+                let vol = Math.max(0, 1.0 - (dist / 250));
+                vol = vol * vol; 
+                
+                let dirToPos = pos.clone().sub(camera.position).normalize();
+                let camRight = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+                let pan = Math.max(-1, Math.min(1, dirToPos.dot(camRight)));
+                
+                return { vol, pan };
+            },
+
+            playCannon: function(pos) {
+                if (!this.ctx) return;
+                let {vol, pan} = this.getSpatialParams(pos);
+                if (vol <= 0.01) return;
+                
+                let t = this.ctx.currentTime;
+                
+                let src = this.ctx.createBufferSource();
+                src.buffer = this.noiseBuffer;
+                
+                let filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.setValueAtTime(1000, t);
+                filter.frequency.exponentialRampToValueAtTime(100, t + 0.1); 
+                filter.Q.value = 1.0;
+                
+                let gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(vol * 0.8, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15); 
+                
+                let panner = this.ctx.createStereoPanner();
+                panner.pan.value = pan;
+                
+                src.connect(filter).connect(gain).connect(panner).connect(this.ctx.destination);
+                src.start(t);
+                src.stop(t + 0.2);
+            },
+
+            playMissileLaunch: function(pos) {
+                if (!this.ctx) return;
+                let {vol, pan} = this.getSpatialParams(pos);
+                if (vol <= 0.01) return;
+                
+                let t = this.ctx.currentTime;
+                
+                let osc = this.ctx.createOscillator();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, t);
+                osc.frequency.exponentialRampToValueAtTime(40, t + 0.2);
+                let oscGain = this.ctx.createGain();
+                oscGain.gain.setValueAtTime(vol * 1.5, t);
+                oscGain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+                
+                let src = this.ctx.createBufferSource();
+                src.buffer = this.noiseBuffer;
+                src.loop = true;
+                
+                let filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 800; 
+                
+                let noiseGain = this.ctx.createGain();
+                noiseGain.gain.setValueAtTime(0, t);
+                noiseGain.gain.linearRampToValueAtTime(vol * 0.6, t + 0.1);
+                noiseGain.gain.setValueAtTime(vol * 0.6, t + 1.0);
+                noiseGain.gain.linearRampToValueAtTime(0.01, t + 1.5); 
+                
+                let panner = this.ctx.createStereoPanner();
+                panner.pan.value = pan;
+                
+                osc.connect(oscGain).connect(panner).connect(this.ctx.destination);
+                src.connect(filter).connect(noiseGain).connect(panner).connect(this.ctx.destination);
+                
+                osc.start(t);
+                osc.stop(t + 0.3);
+                src.start(t);
+                src.stop(t + 1.6);
+            },
+
+            playExplosion: function(pos, isHuge) {
+                if (!this.ctx) return;
+                let {vol, pan} = this.getSpatialParams(pos);
+                if (vol <= 0.01) return;
+                
+                let t = this.ctx.currentTime;
+                let duration = isHuge ? 2.5 : 1.0;
+                let volumeScale = isHuge ? 2.0 : 1.0;
+                
+                let osc = this.ctx.createOscillator();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(isHuge ? 100 : 150, t);
+                osc.frequency.exponentialRampToValueAtTime(20, t + duration * 0.5);
+                
+                let oscGain = this.ctx.createGain();
+                oscGain.gain.setValueAtTime(vol * volumeScale, t);
+                oscGain.gain.exponentialRampToValueAtTime(0.01, t + duration);
+                
+                let src = this.ctx.createBufferSource();
+                src.buffer = this.noiseBuffer;
+                
+                let filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(isHuge ? 1000 : 2000, t);
+                filter.frequency.linearRampToValueAtTime(100, t + duration);
+                
+                let noiseGain = this.ctx.createGain();
+                noiseGain.gain.setValueAtTime(vol * volumeScale * 0.8, t);
+                noiseGain.gain.exponentialRampToValueAtTime(0.01, t + duration * 0.8);
+                
+                let panner = this.ctx.createStereoPanner();
+                panner.pan.value = pan;
+                
+                osc.connect(oscGain).connect(panner).connect(this.ctx.destination);
+                src.connect(filter).connect(noiseGain).connect(panner).connect(this.ctx.destination);
+                
+                osc.start(t);
+                osc.stop(t + duration);
+                src.start(t);
+                src.stop(t + duration);
+            },
+
+            playTreeSnap: function(pos) {
+                if (!this.ctx) return;
+                let {vol, pan} = this.getSpatialParams(pos);
+                if (vol <= 0.01) return;
+                
+                let t = this.ctx.currentTime;
+                let src = this.ctx.createBufferSource();
+                src.buffer = this.noiseBuffer;
+                
+                let filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = 1500;
+                filter.Q.value = 0.5;
+                
+                let gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0, t);
+                gain.gain.linearRampToValueAtTime(vol * 0.8, t + 0.02);
+                gain.gain.linearRampToValueAtTime(vol * 0.2, t + 0.05);
+                gain.gain.linearRampToValueAtTime(vol * 0.6, t + 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+                
+                let panner = this.ctx.createStereoPanner();
+                panner.pan.value = pan;
+                
+                src.connect(filter).connect(gain).connect(panner).connect(this.ctx.destination);
+                src.start(t);
+                src.stop(t + 0.4);
+            },
+
+            playTreeThud: function(pos) {
+                if (!this.ctx) return;
+                let {vol, pan} = this.getSpatialParams(pos);
+                if (vol <= 0.01) return;
+                
+                let t = this.ctx.currentTime;
+                
+                let osc = this.ctx.createOscillator();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(80, t);
+                osc.frequency.exponentialRampToValueAtTime(30, t + 0.2);
+                
+                let gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(vol * 1.2, t);
+                gain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+                
+                let panner = this.ctx.createStereoPanner();
+                panner.pan.value = pan;
+                
+                osc.connect(gain).connect(panner).connect(this.ctx.destination);
+                osc.start(t);
+                osc.stop(t + 0.4);
+            }
+        };
+
         let scene, camera, renderer;
         let player;
         let enemies = [];
         let projectiles = [];
         let explosions = [];
         let smokeClouds = []; 
-        let fireClouds = []; // 全局火焰粒子数组
+        let fireClouds = []; 
         let buildings = [];
-        let fallingTrees = []; // 正在倒塌的树木动画队列
-        let trunkMat, leavesMat, stumpGeo, topTrunkGeo, leavesGeo1, leavesGeo2, leavesGeo3; // 树木静态实例化资源
+        let fallingTrees = []; 
+        let trunkMat, leavesMat, stumpGeo, topTrunkGeo, leavesGeo1, leavesGeo2, leavesGeo3; 
         
         let collidables = []; 
-        let destroyedTanks = []; // 保存被摧毁坦克的数组，用于计算炮塔飞天与遗留残骸
+        let destroyedTanks = []; 
         
-        // --- 核心统计逻辑 ---
-        let destroyedEnemyCount = 0; // 已击毁数量
+        let destroyedEnemyCount = 0; 
+        let activeBoss = null; // 全局追踪 Boss
+        let lastT58SpawnKillCount = 0; // 记录上次生成 T58 时的击杀数
 
         function updateKillCounterUI() {
             const el = document.getElementById('kill-counter');
@@ -893,12 +1129,11 @@
             }
         }
 
-        // 占点全局数据
         const capturePoint = {
-            pos: new THREE.Vector3(0, 0, 70), // D点位置
+            pos: new THREE.Vector3(0, 0, 70), 
             radius: 25,
-            progress: 0, // 范围 -100 到 100
-            owner: 0,    // 1 我方，-1 敌方，0 中立
+            progress: 0, 
+            owner: 0,    
             circleMesh: null,
             lightColumn: null
         };
@@ -906,50 +1141,41 @@
         let lastTime = 0;
         let isGameRunning = false;
         
-        // --- 游戏设置全局对象 ---
         const gameSettings = {
-            wreckageDecay: 0,       // 0:不消失, 大于0则为倒计秒数
-            treePenetration: false  // 穿透倒下的树木
+            wreckageDecay: 0,       
+            treePenetration: false  
         };
 
-        // --- 地形高度计算函数 (多重柏林噪声模拟) ---
         function getTerrainHeight(x, z) {
-            // 限制在场地内
             if (Math.abs(x) > 150 || Math.abs(z) > 150) return 0;
             
-            // 叠加多个正弦波生成丘陵起伏
             let h = Math.sin(x * 0.03) * Math.cos(z * 0.03) * 6;
             h += Math.sin(x * 0.01 + 1.0) * Math.cos(z * 0.015 + 2.0) * 12;
             
-            // 将中心出生点附近逐渐压平，避免出生在陡坡
             let distToCenter = Math.sqrt(x*x + z*z);
             let flattenFactor = Math.max(0, Math.min(1, (distToCenter - 20) / 30));
             
             return h * flattenFactor;
         }
 
-        // --- 天空穹顶渐变生成 ---
         function createSkybox() {
             const canvas = document.createElement('canvas');
             canvas.width = 1;
             canvas.height = 256;
             const context = canvas.getContext('2d');
             const gradient = context.createLinearGradient(0, 0, 0, 256);
-            gradient.addColorStop(0, "#1e4877"); // 天顶深蓝
-            gradient.addColorStop(0.5, "#4584b4"); // 天空蓝
-            gradient.addColorStop(1, "#c6d8e6"); // 地平线泛白
+            gradient.addColorStop(0, "#1e4877"); 
+            gradient.addColorStop(0.5, "#4584b4"); 
+            gradient.addColorStop(1, "#c6d8e6"); 
             context.fillStyle = gradient;
             context.fillRect(0, 0, 1, 256);
             
             const tex = new THREE.CanvasTexture(canvas);
             scene.background = tex;
-            // 配合地形的轻微雾效，增加空间感
             scene.fog = new THREE.FogExp2(0xc6d8e6, 0.0035); 
         }
 
-        // --- 占点模式系统 ---
         function initCapturePoint() {
-            // 地形贴合的白线圆圈
             const circlePts = [];
             const segments = 64;
             for(let i=0; i<=segments; i++){
@@ -964,7 +1190,6 @@
             capturePoint.circleMesh = new THREE.Line(circleGeo, circleMat);
             scene.add(capturePoint.circleMesh);
 
-            // 占点发光柱体 (使其在远处可见)
             const columnGeo = new THREE.CylinderGeometry(capturePoint.radius, capturePoint.radius, 100, 32, 1, true);
             const columnMat = new THREE.MeshBasicMaterial({
                 color: 0xffffff,
@@ -998,7 +1223,7 @@
                 }
             }
 
-            let captureRate = 8; // 占领速度，大约12秒占满
+            let captureRate = 8; 
             let oldOwner = capturePoint.owner;
 
             if (playerInside && enemiesInside === 0) {
@@ -1036,11 +1261,11 @@
             let colorCss = '#ffffff';
 
             if (capturePoint.progress > 0) {
-                if (capturePoint.progress === 100) { colorHex = 0x2196F3; colorCss = '#2196F3'; } // Blue
-                else { colorHex = 0x81D4FA; colorCss = '#81D4FA'; } // Capturing blue
+                if (capturePoint.progress === 100) { colorHex = 0x2196F3; colorCss = '#2196F3'; } 
+                else { colorHex = 0x81D4FA; colorCss = '#81D4FA'; } 
             } else if (capturePoint.progress < 0) {
-                if (capturePoint.progress === -100) { colorHex = 0xF44336; colorCss = '#F44336'; } // Red
-                else { colorHex = 0xEF9A9A; colorCss = '#EF9A9A'; } // Capturing red
+                if (capturePoint.progress === -100) { colorHex = 0xF44336; colorCss = '#F44336'; } 
+                else { colorHex = 0xEF9A9A; colorCss = '#EF9A9A'; } 
             }
 
             fill.style.backgroundColor = colorCss;
@@ -1053,7 +1278,6 @@
             }
         }
 
-        // --- 无线电消息系统 ---
         let currentRadioMenu = null; 
         const radioMessages = {
             main: [
@@ -1155,7 +1379,6 @@
             }, 1500);
         }
         
-        // 增加 C 键状态
         const keys = { w: false, a: false, s: false, d: false, c: false, j: false };
         const mouse = { leftDown: false, rightDown: false };
         let cameraYaw = 0; 
@@ -1166,16 +1389,14 @@
         let analogMove = 0; 
         let analogTurn = 0;
 
-        // 将常量改为动态变量以支持难度调整
         let PLAYER_MAX_HP = 2000;
-        let ENEMY_MAX_HP = 200;
-        let PLAYER_MISSILE_DAMAGE = 250; // 新增：动态导弹伤害，默认匹配街机/历史的单发伤害
+        let ENEMY_HP_MULTIPLIER = 1.0; 
+        let PLAYER_MISSILE_DAMAGE = 250; 
         const MISSILE_COOLDOWN = 2.5;
 
         function init() {
             scene = new THREE.Scene();
             
-            // 初始化物理环境光与天空盒
             createSkybox();
             
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -1185,12 +1406,10 @@
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-            // 物理正确的半球光 (HemisphereLight) 模拟全局 AO
             const hemiLight = new THREE.HemisphereLight( 0xffffff, 0x444444, 0.65 );
             hemiLight.position.set( 0, 200, 0 );
             scene.add( hemiLight );
             
-            // 优化阴影和平行光
             const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
             dirLight.position.set(100, 150, 50);
             dirLight.castShadow = true;
@@ -1201,7 +1420,7 @@
             dirLight.shadow.camera.far = 500;
             dirLight.shadow.mapSize.width = 2048;
             dirLight.shadow.mapSize.height = 2048;
-            dirLight.shadow.bias = -0.0005; // 消除阴影条纹伪影
+            dirLight.shadow.bias = -0.0005; 
             scene.add(dirLight);
 
             buildCity();
@@ -1211,57 +1430,51 @@
             player = new PlayerTank(0, 0);
             scene.add(player.mesh);
 
-            spawnEnemies(8);
+            spawnEnemies(8); // 初始化只生成普通敌军
 
-            // 绑定设置按钮功能：兼容 PC 端(解除指针锁定)与移动端(直接触发暂停逻辑)
             const settingsBtn = document.getElementById('settings-btn');
             const openSettings = (e) => {
                 e.stopPropagation();
-                if (e.cancelable) e.preventDefault(); // 防止移动端同时触发 touch 和 click
+                if (e.cancelable) e.preventDefault(); 
                 
                 if (isMobileMode) {
-                    // 移动端暂停逻辑
                     document.getElementById('start-screen').style.display = 'flex';
                     document.getElementById('ui-layer').style.display = 'none';
                     document.getElementById('start-btn').innerText = (player && player.hp > 0) ? "继续战斗" : "点击进入战场";
                     isGameRunning = false;
                 } else if (document.pointerLockElement === document.body) {
-                    // PC 端暂停逻辑
                     document.exitPointerLock();
                 }
             };
             settingsBtn.addEventListener('click', openSettings);
             settingsBtn.addEventListener('touchstart', openSettings, { passive: false });
 
-            // 绑定设置界面的事件监听
             document.getElementById('set-difficulty').addEventListener('change', (e) => {
                 const mode = e.target.value;
                 if (mode === 'arcade') {
                     PLAYER_MAX_HP = 2000;
-                    ENEMY_MAX_HP = 200;
-                    PLAYER_MISSILE_DAMAGE = 250; // 街机难度下保证一发摧毁(200血量)
+                    ENEMY_HP_MULTIPLIER = 1.0;
+                    PLAYER_MISSILE_DAMAGE = 250; 
                 } else if (mode === 'realistic') {
                     PLAYER_MAX_HP = 500;
-                    ENEMY_MAX_HP = 500;
-                    PLAYER_MISSILE_DAMAGE = 250; // 历史难度: 500 HP / 250 伤害 = 2发摧毁
+                    ENEMY_HP_MULTIPLIER = 2.5; 
+                    PLAYER_MISSILE_DAMAGE = 250; 
                 } else if (mode === 'simulator') {
                     PLAYER_MAX_HP = 200;
-                    ENEMY_MAX_HP = 2000;
-                    PLAYER_MISSILE_DAMAGE = 500; // 全真难度: 2000 HP / 500 伤害 = 4发摧毁
+                    ENEMY_HP_MULTIPLIER = 10.0; 
+                    PLAYER_MISSILE_DAMAGE = 500; 
                 }
                 
-                // 动态调整当前玩家的血量上限，并按比例等比缩放当前血量
                 if (player && player.hp > 0) {
                     let ratio = player.hp / player.maxHp;
                     player.maxHp = PLAYER_MAX_HP;
                     player.hp = Math.max(1, player.maxHp * ratio);
                 }
                 
-                // 动态调整当前所有存活敌军的血量上限
                 for (let enemy of enemies) {
                     if (enemy.hp > 0) {
                         let ratio = enemy.hp / enemy.maxHp;
-                        enemy.maxHp = ENEMY_MAX_HP;
+                        enemy.maxHp = enemy.baseMaxHp * ENEMY_HP_MULTIPLIER;
                         enemy.hp = Math.max(1, enemy.maxHp * ratio);
                     }
                 }
@@ -1341,6 +1554,8 @@
 
             const startBtn = document.getElementById('start-btn');
             startBtn.addEventListener('click', () => {
+                SoundManager.init();
+
                 if (isMobileMode) {
                     if (document.documentElement.requestFullscreen) {
                         document.documentElement.requestFullscreen().catch(e=>console.log(e));
@@ -1371,7 +1586,6 @@
                 } else {
                     document.getElementById('start-screen').style.display = 'flex';
                     document.getElementById('ui-layer').style.display = 'none';
-                    // 动态更新按钮文字
                     document.getElementById('start-btn').innerText = (player && player.hp > 0) ? "继续战斗" : "点击进入战场";
                     isGameRunning = false;
                 }
@@ -1484,7 +1698,6 @@
             aimArea.addEventListener('touchend', resetAim, {passive: false});
             aimArea.addEventListener('touchcancel', resetAim, {passive: false});
 
-            // --- 给开火键加入摇杆/滑动压枪功能 ---
             const btnFire = document.getElementById('btn-fire');
             let fireTouchId = null;
             let lastFireX = 0, lastFireY = 0;
@@ -1568,13 +1781,13 @@
         // 核心坦克类: PBR 高精度与地形自适应
         // ==========================================
         class Tank {
-            constructor(x, z, maxHp, isPlayer) {
+            constructor(x, z, maxHp, isPlayer, buildDefaultModel = true) {
                 this.hp = maxHp;
                 this.maxHp = maxHp;
+                this.baseMaxHp = maxHp; 
                 this.isPlayer = isPlayer;
                 this.mesh = new THREE.Group();
                 
-                // 初始生成在高度场上方
                 let startY = getTerrainHeight(x, z);
                 this.mesh.position.set(x, startY, z);
                 
@@ -1586,9 +1799,9 @@
                 this.weaponPitch = 0; 
                 this.radius = 2.5; 
 
-                this.isDestroyed = false; // 损毁状态标记
-                this.turretVelocity = new THREE.Vector3(); // 炮塔炸飞速度
-                this.turretRotVelocity = new THREE.Vector3(); // 炮塔炸飞旋转动量
+                this.isDestroyed = false; 
+                this.turretVelocity = new THREE.Vector3(); 
+                this.turretRotVelocity = new THREE.Vector3(); 
 
                 this.canMove = true;
                 this.canFire = true;
@@ -1597,7 +1810,6 @@
 
                 const hullColor = isPlayer ? 0x4a5d3e : 0xc2b280; 
                 
-                // 将材质改为实例属性，以便在销毁时可以独立变为焦黑色
                 this.armorMat = new THREE.MeshStandardMaterial({ 
                     color: hullColor, roughness: 0.65, metalness: 0.3 
                 });
@@ -1616,7 +1828,19 @@
                 
                 this.hull = new THREE.Group();
                 this.hull.rotation.order = "YXZ"; 
-                
+                this.turret = new THREE.Group();
+                this.turret.rotation.order = "YXZ"; 
+                this.turret.position.y = 2.2;
+
+                if (buildDefaultModel) {
+                    this.buildDefaultModel(isPlayer);
+                    this.mesh.add(this.hull);
+                    this.mesh.add(this.turret);
+                    collidables.push(this.hull, this.turret);
+                }
+            }
+
+            buildDefaultModel(isPlayer) {
                 if (isPlayer) {
                     const bodyGeo = new THREE.BoxGeometry(3.6, 1.2, 5.0);
                     const body = new THREE.Mesh(bodyGeo, this.armorMat);
@@ -1663,59 +1887,7 @@
                             this.hull.add(wheel);
                         }
                     }
-                } else {
-                    const bodyGeo = new THREE.BoxGeometry(3.8, 1.3, 5.8);
-                    const body = new THREE.Mesh(bodyGeo, this.armorMat);
-                    body.position.set(0, 1.25, -0.7);
-                    body.castShadow = true; body.receiveShadow = true;
-                    body.userData = { type: 'hull', tank: this };
-                    this.hull.add(body);
 
-                    const upperGlacis = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.4, 3.2), this.armorMat);
-                    upperGlacis.position.set(0, 1.36, 3.7);
-                    upperGlacis.rotation.x = Math.PI / 9; 
-                    upperGlacis.castShadow = true; upperGlacis.receiveShadow = true;
-                    upperGlacis.userData = { type: 'hull', tank: this };
-                    this.hull.add(upperGlacis);
-
-                    const lowerGlacis = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.4, 1.2), this.armorMat);
-                    lowerGlacis.position.set(0, 0.52, 4.68);
-                    lowerGlacis.rotation.x = -Math.PI / 6; 
-                    lowerGlacis.castShadow = true; lowerGlacis.receiveShadow = true;
-                    lowerGlacis.userData = { type: 'hull', tank: this };
-                    this.hull.add(lowerGlacis);
-                    
-                    const trackGeo = new THREE.BoxGeometry(0.9, 1.2, 7.8);
-                    const skirtGeo = new THREE.BoxGeometry(1.0, 0.9, 7.8);
-                    for (let side of [-1, 1]) {
-                        let track = new THREE.Mesh(trackGeo, this.trackMat);
-                        track.position.set(side * 2.2, 0.6, 0);
-                        track.userData = { type: 'track', tank: this };
-                        this.hull.add(track);
-
-                        let skirt = new THREE.Mesh(skirtGeo, this.armorMat);
-                        skirt.position.set(side * 2.25, 1.4, 0);
-                        skirt.castShadow = true;
-                        skirt.userData = { type: 'track', tank: this };
-                        this.hull.add(skirt);
-
-                        for (let w = 0; w < 7; w++) {
-                            let wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.95, 16), this.wheelMat);
-                            wheel.rotation.z = Math.PI / 2;
-                            wheel.position.set(side * 2.2, 0.45, -2.8 + w * 0.93);
-                            wheel.userData = { type: 'track', tank: this };
-                            this.hull.add(wheel);
-                        }
-                    }
-                }
-
-                this.mesh.add(this.hull);
-
-                this.turret = new THREE.Group();
-                this.turret.rotation.order = "YXZ"; 
-                this.turret.position.y = 2.2;
-                
-                if (isPlayer) {
                     const turretBase = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.4, 0.5, 16), this.armorMat);
                     turretBase.position.y = -0.2;
                     turretBase.castShadow = true;
@@ -1775,7 +1947,7 @@
                     this.weapons.add(this.launcherMuzzles[0], this.launcherMuzzles[1]);
                     
                     this.lastGunFire = 0;
-                    this.fireRateMode = 1; // 0:低, 1:中, 2:高
+                    this.fireRateMode = 1; 
                     this.fireRates = [0.2, 0.1, 0.05];
                     this.fireRateLabels = ['低', '中', '高'];
                     this.gunSide = 1; 
@@ -1794,6 +1966,50 @@
                     this.MAX_SMOKE_COOLDOWN = 20;
                     
                 } else {
+                    const bodyGeo = new THREE.BoxGeometry(3.8, 1.3, 5.8);
+                    const body = new THREE.Mesh(bodyGeo, this.armorMat);
+                    body.position.set(0, 1.25, -0.7);
+                    body.castShadow = true; body.receiveShadow = true;
+                    body.userData = { type: 'hull', tank: this };
+                    this.hull.add(body);
+
+                    const upperGlacis = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.4, 3.2), this.armorMat);
+                    upperGlacis.position.set(0, 1.36, 3.7);
+                    upperGlacis.rotation.x = Math.PI / 9; 
+                    upperGlacis.castShadow = true; upperGlacis.receiveShadow = true;
+                    upperGlacis.userData = { type: 'hull', tank: this };
+                    this.hull.add(upperGlacis);
+
+                    const lowerGlacis = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.4, 1.2), this.armorMat);
+                    lowerGlacis.position.set(0, 0.52, 4.68);
+                    lowerGlacis.rotation.x = -Math.PI / 6; 
+                    lowerGlacis.castShadow = true; lowerGlacis.receiveShadow = true;
+                    lowerGlacis.userData = { type: 'hull', tank: this };
+                    this.hull.add(lowerGlacis);
+                    
+                    const trackGeo = new THREE.BoxGeometry(0.9, 1.2, 7.8);
+                    const skirtGeo = new THREE.BoxGeometry(1.0, 0.9, 7.8);
+                    for (let side of [-1, 1]) {
+                        let track = new THREE.Mesh(trackGeo, this.trackMat);
+                        track.position.set(side * 2.2, 0.6, 0);
+                        track.userData = { type: 'track', tank: this };
+                        this.hull.add(track);
+
+                        let skirt = new THREE.Mesh(skirtGeo, this.armorMat);
+                        skirt.position.set(side * 2.25, 1.4, 0);
+                        skirt.castShadow = true;
+                        skirt.userData = { type: 'track', tank: this };
+                        this.hull.add(skirt);
+
+                        for (let w = 0; w < 7; w++) {
+                            let wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.95, 16), this.wheelMat);
+                            wheel.rotation.z = Math.PI / 2;
+                            wheel.position.set(side * 2.2, 0.45, -2.8 + w * 0.93);
+                            wheel.userData = { type: 'track', tank: this };
+                            this.hull.add(wheel);
+                        }
+                    }
+
                     this.weapons = new THREE.Group();
                     this.weapons.position.set(0, 0.4, 0.8);
                     this.turret.add(this.weapons);
@@ -1842,9 +2058,6 @@
                     this.lastFire = 0;
                     this.fireRate = 2.0; 
                 }
-
-                this.mesh.add(this.turret);
-                collidables.push(this.hull, this.turret);
             }
 
             handleHit(hitObject, damage, isMissile) {
@@ -1893,11 +2106,12 @@
                 if (this.isDestroyed) return;
                 this.isDestroyed = true;
                 
-                // 弹药殉爆：生成大型球状爆炸和短暂的高温火焰喷发，而不是持久的烟雾
-                createExplosion(this.mesh.position.clone(), 8);
+                // 动态调整殉爆的特效大小
+                let explosionSize = this.radius * 3.2;
+                SoundManager.playExplosion(this.mesh.position.clone(), true);
+                createExplosion(this.mesh.position.clone(), explosionSize);
                 fireClouds.push(new FireCloud(this.mesh.position.clone()));
 
-                // 将所有组件材质变为彻底烧焦的灰黑色
                 this.armorMat.color.setHex(0x151515);
                 this.armorMat.roughness = 0.95;
                 this.armorMat.metalness = 0.05;
@@ -1906,22 +2120,21 @@
                 this.gunMat.color.setHex(0x111111);
                 this.opticsMat.color.setHex(0x000000);
 
-                // --- 物理效果：炮塔飞天 (Jack-in-the-box) ---
-                // 正确获取世界坐标与旋转，避免直接覆盖本地坐标导致的二次偏移瞬移
                 let worldPos = new THREE.Vector3();
                 let worldQuat = new THREE.Quaternion();
+                let worldScale = new THREE.Vector3();
                 this.turret.getWorldPosition(worldPos);
                 this.turret.getWorldQuaternion(worldQuat);
+                this.turret.getWorldScale(worldScale);
                 
-                // 将炮塔脱离车体，加入全局场景，并赋予正确的绝对坐标
                 scene.add(this.turret);
                 this.turret.position.copy(worldPos);
                 this.turret.quaternion.copy(worldQuat);
+                this.turret.scale.copy(worldScale); // 继承父级的缩放大小
                 
-                // 给炮塔施加强烈的爆炸冲量与旋转力矩
                 this.turretVelocity.set(
                     (Math.random() - 0.5) * 6, 
-                    12 + Math.random() * 8, // 略微增加垂直向上的初速度，让飞头抛物线更明显
+                    12 + Math.random() * 8, 
                     (Math.random() - 0.5) * 6
                 );
                 this.turretRotVelocity.set(
@@ -1930,32 +2143,27 @@
                     (Math.random() - 0.5) * 3
                 );
 
-                // 推入残骸系统列表
                 destroyedTanks.push(this);
-                
-                // 让燃烧的底盘和落地的炮塔成为永久的物理阻挡物掩体！
             }
 
             checkBuildingCollision(newPos) {
-                // 判断建筑几何体碰撞 (现在需要结合地形高度)
                 for (let b of buildings) {
-                    if (newPos.x > b.minX && newPos.x < b.maxX && newPos.z > b.minZ && newPos.z < b.maxZ) {
+                    // 加入自身的碰撞半径，避免巨大体积的车体穿模
+                    if (newPos.x + this.radius > b.minX && newPos.x - this.radius < b.maxX && 
+                        newPos.z + this.radius > b.minZ && newPos.z - this.radius < b.maxZ) {
                         if (b.type === 'tree') {
                             if (!b.treeObj.isBroken) {
-                                // 坦克势不可挡，直接碾断树木
                                 let impactDir = new THREE.Vector3(Math.sin(this.hullYaw), 0, Math.cos(this.hullYaw)).normalize();
                                 b.treeObj.breakTree(impactDir);
                             }
-                            return false; // 树木不再阻碍坦克移动
+                            return false; 
                         }
-                        return true; // 依然会被岩石阻挡
+                        return true; 
                     }
                 }
                 
-                // --- 新增：坦克之间的动态物理碰撞 (圆柱体碰撞算法) ---
                 let minDistSq;
                 
-                // 1. 与玩家的碰撞判定
                 if (player && player !== this && player.hp > 0) {
                     let dx = newPos.x - player.mesh.position.x;
                     let dz = newPos.z - player.mesh.position.z;
@@ -1963,7 +2171,6 @@
                     if (dx*dx + dz*dz < minDistSq) return true;
                 }
                 
-                // 2. 与敌方坦克的碰撞判定
                 for (let e of enemies) {
                     if (e !== this && e.hp > 0) {
                         let dx = newPos.x - e.mesh.position.x;
@@ -1973,7 +2180,6 @@
                     }
                 }
                 
-                // 3. 与所有遗留的装甲残骸的碰撞判定
                 for (let t of destroyedTanks) {
                     if (t !== this) {
                         let dx = newPos.x - t.mesh.position.x;
@@ -1983,20 +2189,18 @@
                     }
                 }
 
-                // 边界碰撞
-                if(Math.abs(newPos.x) > 145 || Math.abs(newPos.z) > 145) return true;
+                // 边界碰撞也加上半径判断
+                if(Math.abs(newPos.x) + this.radius > 150 || Math.abs(newPos.z) + this.radius > 150) return true;
                 return false;
             }
             
-            // --- 动态地形法线对齐核心逻辑 ---
             applyTerrainAlignment(dt) {
                 let currentH = getTerrainHeight(this.mesh.position.x, this.mesh.position.z);
                 
-                // 平滑重力吸附
                 this.mesh.position.y += (currentH - this.mesh.position.y) * 15 * dt;
 
-                // 多点采样计算地形斜率
-                let sDist = 2.5; 
+                // 使探测距离动态适应坦克大小，越大的坦克跨越地形越平缓
+                let sDist = this.radius; 
                 let fX = this.mesh.position.x + Math.sin(this.hullYaw) * sDist;
                 let fZ = this.mesh.position.z + Math.cos(this.hullYaw) * sDist;
                 let bX = this.mesh.position.x - Math.sin(this.hullYaw) * sDist;
@@ -2005,7 +2209,7 @@
                 let hBack  = getTerrainHeight(bX, bZ);
                 let targetPitch = Math.atan2(hFront - hBack, sDist * 2);
 
-                let rDist = 1.5;
+                let rDist = this.radius * 0.6;
                 let rX = this.mesh.position.x + Math.cos(this.hullYaw) * rDist;
                 let rZ = this.mesh.position.z - Math.sin(this.hullYaw) * rDist;
                 let lX = this.mesh.position.x - Math.cos(this.hullYaw) * rDist;
@@ -2014,7 +2218,6 @@
                 let hLeft  = getTerrainHeight(lX, lZ);
                 let targetRoll = Math.atan2(hRight - hLeft, rDist * 2);
 
-                // 平滑过渡，应用到车体和炮塔的 X(Pitch) 与 Z(Roll)
                 let alignSpeed = 8 * dt;
                 this.hull.rotation.x += (-targetPitch - this.hull.rotation.x) * alignSpeed;
                 this.hull.rotation.z += (targetRoll - this.hull.rotation.z) * alignSpeed;
@@ -2141,7 +2344,6 @@
             }
 
             update(dt) {
-                // 自爆逻辑
                 let sdUi = document.getElementById('self-destruct-ui');
                 if (keys.j) {
                     this.selfDestructTimer = (this.selfDestructTimer || 0) + dt;
@@ -2152,7 +2354,7 @@
                         this.destroy();
                         sdUi.style.display = 'none';
                         showKillMessage("玩家启动了自毁程序");
-                        return; // 结束当前帧更新
+                        return; 
                     }
                 } else {
                     this.selfDestructTimer = 0;
@@ -2194,7 +2396,6 @@
                     if (!this.checkBuildingCollision(new THREE.Vector3(this.mesh.position.x, this.mesh.position.y, newZ))) this.mesh.position.z = newZ;
                 }
                 
-                // 动态地形贴合
                 this.applyTerrainAlignment(dt);
 
                 let dirX = Math.sin(cameraYaw) * Math.cos(cameraPitch);
@@ -2217,7 +2418,6 @@
                     camera.position.y = focusPoint.y - camDir.y * camDistance;
                     camera.position.z = focusPoint.z - camDir.z * camDistance;
                     
-                    // 相机地形防穿模保护
                     let camTerrainH = getTerrainHeight(camera.position.x, camera.position.z);
                     if (camera.position.y < camTerrainH + 0.5) camera.position.y = camTerrainH + 0.5;
 
@@ -2257,7 +2457,6 @@
                 this.turretYaw += Math.sign(diffYaw) * Math.min(Math.abs(diffYaw), turretTurnSpeed * dt);
                 this.turret.rotation.y = this.turretYaw;
 
-                // 计算相对于地形俯仰后的真实武器相对Pitch
                 let inverseTurretQuat = this.turret.getWorldQuaternion(new THREE.Quaternion()).invert();
                 let localGunDir = gunDir.clone().applyQuaternion(inverseTurretQuat);
                 let targetPitch = Math.asin(Math.max(-1, Math.min(1, localGunDir.y)));
@@ -2422,7 +2621,6 @@
                 turretEl.style.borderColor = turretColor;
                 document.styleSheets[0].insertRule(`#wt-turret::before { background-color: ${turretColor} !important; }`, document.styleSheets[0].cssRules.length);
 
-                // 更新血条环
                 let hpRing = document.getElementById('wt-hp-ring');
                 if (hpRing) {
                     let ringOffset = 351.86 * (1 - Math.max(0, hpPercent));
@@ -2454,6 +2652,8 @@
                     let spawnPos = new THREE.Vector3();
                     this.muzzles[muzzleIndex].getWorldPosition(spawnPos);
                     
+                    SoundManager.playCannon(spawnPos);
+                    
                     projectiles.push(new Projectile(spawnPos, fireDir, 400, 30, true, 0xffff00, 0.4));
                     this.gunSide *= -1; 
                 }
@@ -2467,7 +2667,6 @@
                     let fireDir = new THREE.Vector3(0, 0, 1);
                     fireDir.applyQuaternion(this.weapons.getWorldQuaternion(new THREE.Quaternion())).normalize();
 
-                    // 导弹发射口选择：4->左上, 3->右上, 2->左下, 1->右下
                     let isLeft = (this.missilesInClip % 2 === 0);
                     let sideIndex = isLeft ? 0 : 1;
                     let heightOffset = this.missilesInClip > 2 ? 0.2 : -0.2;
@@ -2478,7 +2677,8 @@
                     let upDir = new THREE.Vector3(0, 1, 0).applyQuaternion(this.weapons.getWorldQuaternion(new THREE.Quaternion())).normalize();
                     spawnPos.add(upDir.multiplyScalar(heightOffset));
                     
-                    // 应用动态导弹伤害 PLAYER_MISSILE_DAMAGE
+                    SoundManager.playMissileLaunch(spawnPos);
+                    
                     projectiles.push(new Projectile(spawnPos, fireDir, 80, PLAYER_MISSILE_DAMAGE, true, 0xff3300, 0.5, true));
                     
                     this.missilesInClip--;
@@ -2490,11 +2690,13 @@
         }
 
         class EnemyTank extends Tank {
-            constructor(x, z) {
-                super(x, z, ENEMY_MAX_HP, false);
+            constructor(x, z, buildDefaultModel = true) {
+                super(x, z, 200 * ENEMY_HP_MULTIPLIER, false, buildDefaultModel);
+                this.baseMaxHp = 200;
                 this.state = 'patrol';
                 this.targetPos = this.getRandomPosition();
                 this.attackRange = 80;
+                this.fireRate = 2.0;
                 
                 this.uiElement = document.createElement('div');
                 this.uiElement.className = 'enemy-hp';
@@ -2504,9 +2706,17 @@
                 this.uiElement.appendChild(this.uiInner);
                 document.getElementById('enemy-huds').appendChild(this.uiElement);
             }
+            
+            fireWeapon(aimDir) {
+                let spawnPos = new THREE.Vector3();
+                this.weapons.getWorldPosition(spawnPos);
+                spawnPos.add(aimDir.clone().multiplyScalar(4.0)); 
+                
+                SoundManager.playCannon(spawnPos);
+                projectiles.push(new Projectile(spawnPos, aimDir, 200, 20, false, 0xff0000, 0.4));
+            }
 
             getRandomPosition() {
-                // 35% 概率去争夺 D 点
                 if (Math.random() < 0.35 && capturePoint.owner !== -1) {
                     let angle = Math.random() * Math.PI * 2;
                     let r = Math.random() * capturePoint.radius * 0.8;
@@ -2517,7 +2727,6 @@
                     );
                 }
                 
-                // 确保目标点在地图范围内
                 let x = (Math.random() - 0.5) * 250;
                 let z = (Math.random() - 0.5) * 250;
                 return new THREE.Vector3(x, 0, z);
@@ -2582,20 +2791,22 @@
                     this.turretYaw += Math.sign(diff) * Math.min(Math.abs(diff), 1.5 * dt);
 
                     let now = performance.now() / 1000;
-                    if (now - this.lastFire > this.fireRate && this.canFire) { 
-                        // 极大提高AI的精准度：将 X 和 Z 轴的散布从 0.08 降至 0.015，
-                        // Y 轴(垂直弹道)的随机扰动降至 0.01，并保留 0.04 的重力下坠提前量补偿
-                        let aimDir = player.mesh.position.clone().sub(this.mesh.position).normalize();
+                    let rate = this.fireRate || 2.0;
+                    if (now - this.lastFire > rate && this.canFire) { 
+                        
+                        // --- 核心修复：从炮管真实位置瞄准玩家车体中央 ---
+                        let weaponPos = new THREE.Vector3();
+                        this.weapons.getWorldPosition(weaponPos);
+                        let targetPos = player.mesh.position.clone();
+                        targetPos.y += 1.2; // 瞄准车体高度中心，避免因敌方太高而一直瞄准脚底导致打地
+
+                        let aimDir = targetPos.sub(weaponPos).normalize();
                         aimDir.x += (Math.random()-0.5)*0.015;
                         aimDir.y += 0.04 + (Math.random()-0.5)*0.01; 
                         aimDir.z += (Math.random()-0.5)*0.015;
                         aimDir.normalize();
 
-                        let spawnPos = new THREE.Vector3();
-                        this.weapons.getWorldPosition(spawnPos);
-                        spawnPos.add(aimDir.clone().multiplyScalar(4.0)); 
-
-                        projectiles.push(new Projectile(spawnPos, aimDir, 200, 20, false, 0xff0000, 0.4));
+                        this.fireWeapon(aimDir);
                         this.lastFire = now;
                     }
                 } else {
@@ -2611,6 +2822,7 @@
             }
 
             updateUI() {
+                if (!this.uiElement) return;
                 if (this.hp <= 0) {
                     this.uiElement.style.display = 'none';
                     return;
@@ -2637,7 +2849,201 @@
 
             destroy() {
                 super.destroy();
-                this.uiElement.remove(); 
+                if (this.uiElement) this.uiElement.remove(); 
+            }
+        }
+
+        // === 新增：美国 T58 摇摆炮塔重型坦克 ===
+        class T58Tank extends EnemyTank {
+            constructor(x, z) {
+                super(x, z, false); 
+                this.baseMaxHp = 8000; // 基础血量极高，作为首领单位
+                this.maxHp = this.baseMaxHp * ENEMY_HP_MULTIPLIER;
+                this.hp = this.maxHp;
+                this.speed = 4.5; 
+                this.turnSpeed = 1.0; 
+                this.fireRate = 2.6; // 射速加快至 2.6 秒
+                this.radius = 9.0; // 体积碰撞箱扩大 3 倍
+                this.lastFire = 0;
+                
+                this.createT58Model();
+                
+                if (this.uiElement) {
+                    this.uiElement.style.display = 'none';
+                    this.uiElement.remove();
+                    this.uiElement = null;
+                }
+
+                // 将整个模型放大三倍
+                this.mesh.scale.set(3, 3, 3);
+
+                this.mesh.add(this.hull);
+                this.mesh.add(this.turret);
+                collidables.push(this.hull, this.turret);
+            }
+
+            createT58Model() {
+                this.armorMat = this.armorMat.clone();
+                this.armorMat.color.setHex(0x5a6341); // 调整为更真实的浅军橄榄绿/土褐绿
+
+                // --- 1. 车体 (Hull - 基于三视图的 M103 底盘) ---
+                // 车体中后部主段
+                const hullBody = new THREE.Mesh(new THREE.BoxGeometry(3.8, 1.2, 4.5), this.armorMat);
+                hullBody.position.set(0, 1.1, -1.0);
+                hullBody.castShadow = true; hullBody.receiveShadow = true;
+                hullBody.userData = { type: 'hull', tank: this };
+                this.hull.add(hullBody);
+
+                // 极其圆润的铸造车首 ("大龟壳"前脸)
+                const frontNose = new THREE.Mesh(new THREE.SphereGeometry(1.0, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), this.armorMat);
+                frontNose.scale.set(1.9, 1.5, 0.6); 
+                frontNose.position.set(0, 1.1, 1.25);
+                frontNose.rotation.x = Math.PI / 2; 
+                frontNose.castShadow = true; frontNose.receiveShadow = true;
+                frontNose.userData = { type: 'hull', tank: this };
+                this.hull.add(frontNose);
+                
+                // 履带系统
+                const trackGeo = new THREE.BoxGeometry(1.1, 1.3, 8.8);
+                for (let side of [-1, 1]) {
+                    let track = new THREE.Mesh(trackGeo, this.trackMat);
+                    track.position.set(side * 2.45, 0.65, -0.2);
+                    track.userData = { type: 'track', tank: this };
+                    this.hull.add(track);
+
+                    for (let w = 0; w < 7; w++) {
+                        let wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 1.15, 16), this.wheelMat);
+                        wheel.rotation.z = Math.PI / 2;
+                        wheel.position.set(side * 2.45, 0.5, -3.2 + w * 1.05);
+                        wheel.userData = { type: 'track', tank: this };
+                        this.hull.add(wheel);
+                    }
+                    
+                    let idler = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 1.15, 16), this.wheelMat);
+                    idler.rotation.z = Math.PI / 2;
+                    idler.position.set(side * 2.45, 0.8, 4.0);
+                    idler.userData = { type: 'track', tank: this };
+                    this.hull.add(idler);
+                }
+
+                // --- 2. 下部炮塔 (Collar/摇摆底座) ---
+                // 优化：将炮塔在 Z 轴居中，移除原本向前的 0.5 偏移
+                this.turret.position.set(0, 1.8, 0.0); 
+                
+                const collarBase = new THREE.Mesh(new THREE.CylinderGeometry(1.7, 1.8, 0.4, 32), this.armorMat);
+                collarBase.castShadow = true;
+                collarBase.userData = { type: 'turret', tank: this };
+                this.turret.add(collarBase);
+
+                // 左右侧的耳轴支架
+                const bracketGeo = new THREE.BoxGeometry(0.5, 1.0, 1.4);
+                const bracketL = new THREE.Mesh(bracketGeo, this.armorMat);
+                bracketL.position.set(-1.5, 0.6, -0.4);
+                bracketL.castShadow = true; bracketL.userData = { type: 'turret', tank: this };
+                this.turret.add(bracketL);
+                
+                const bracketR = new THREE.Mesh(bracketGeo, this.armorMat);
+                bracketR.position.set(1.5, 0.6, -0.4);
+                bracketR.castShadow = true; bracketR.userData = { type: 'turret', tank: this };
+                this.turret.add(bracketR);
+
+                // --- 3. 上部炮塔 (摇摆体 / Oscillating Part) ---
+                this.weapons = new THREE.Group();
+                this.weapons.position.set(0, 0.7, -0.4); 
+                this.turret.add(this.weapons);
+
+                const upperFront = new THREE.Mesh(new THREE.SphereGeometry(1.6, 32, 24), this.armorMat);
+                upperFront.scale.set(1.0, 0.8, 1.2);
+                upperFront.position.set(0, 0.1, 0.8);
+                upperFront.castShadow = true; upperFront.userData = { type: 'turret', tank: this };
+                this.weapons.add(upperFront);
+
+                const bustle = new THREE.Mesh(new THREE.BoxGeometry(2.8, 1.6, 3.2), this.armorMat);
+                bustle.position.set(0, 0.15, -1.6);
+                bustle.castShadow = true; bustle.userData = { type: 'turret', tank: this };
+                this.weapons.add(bustle);
+                
+                const bustleRear = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.4, 0.3), this.trackMat);
+                bustleRear.position.set(0, 0.15, -3.25);
+                bustleRear.castShadow = true; bustleRear.userData = { type: 'turret', tank: this };
+                this.weapons.add(bustleRear);
+                
+                const cupola = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.4, 16), this.armorMat);
+                cupola.position.set(0.8, 1.0, 0.2);
+                cupola.castShadow = true; cupola.userData = { type: 'turret', tank: this };
+                this.weapons.add(cupola);
+
+                const mgGroup = new THREE.Group();
+                mgGroup.position.set(0.8, 1.3, 0.2);
+                const mgReceiver = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.2, 0.6), this.gunMat);
+                mgGroup.add(mgReceiver);
+                const mgBarrel = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.8, 8), this.gunMat);
+                mgBarrel.rotation.x = Math.PI / 2;
+                mgBarrel.position.set(0, 0, 0.6);
+                mgGroup.add(mgBarrel);
+                const mgAmmoBox = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), new THREE.MeshStandardMaterial({color: 0x444422}));
+                mgAmmoBox.position.set(-0.15, 0, 0);
+                mgGroup.add(mgAmmoBox);
+                this.weapons.add(mgGroup);
+
+                // --- 4. 155mm T180 主炮 ---
+                const gunBase = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.45, 1.5, 16), this.gunMat);
+                gunBase.rotation.x = Math.PI / 2;
+                gunBase.position.set(0, 0.1, 2.6);
+                gunBase.castShadow = true; gunBase.userData = { type: 'gun', tank: this };
+                this.weapons.add(gunBase);
+
+                const barrelBase = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 3.5, 16), this.gunMat);
+                barrelBase.rotation.x = Math.PI / 2;
+                barrelBase.position.set(0, 0.1, 5.0);
+                barrelBase.castShadow = true; barrelBase.userData = { type: 'gun', tank: this };
+                this.weapons.add(barrelBase);
+                
+                const fumeExtractor = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.4, 16), this.armorMat);
+                fumeExtractor.rotation.x = Math.PI / 2;
+                fumeExtractor.position.set(0, 0.1, 7.4);
+                fumeExtractor.castShadow = true; fumeExtractor.userData = { type: 'gun', tank: this };
+                this.weapons.add(fumeExtractor);
+
+                const barrelFront = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.18, 4.0, 16), this.gunMat);
+                barrelFront.rotation.x = Math.PI / 2;
+                barrelFront.position.set(0, 0.1, 10.1);
+                barrelFront.castShadow = true; barrelFront.userData = { type: 'gun', tank: this };
+                this.weapons.add(barrelFront);
+
+                const mbBase = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.4, 16), this.gunMat);
+                mbBase.rotation.x = Math.PI / 2;
+                mbBase.position.set(0, 0.1, 12.3);
+                mbBase.castShadow = true; mbBase.userData = { type: 'gun', tank: this };
+                this.weapons.add(mbBase);
+                
+                const mbFront = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16), this.gunMat);
+                mbFront.rotation.x = Math.PI / 2;
+                mbFront.position.set(0, 0.1, 12.9);
+                mbFront.castShadow = true; mbFront.userData = { type: 'gun', tank: this };
+                this.weapons.add(mbFront);
+            }
+
+            fireWeapon(aimDir) {
+                let spawnPos = new THREE.Vector3();
+                this.weapons.getWorldPosition(spawnPos);
+                
+                let upDir = new THREE.Vector3(0, 1, 0).applyQuaternion(this.weapons.getWorldQuaternion(new THREE.Quaternion())).normalize();
+                
+                // 核心修复：防止炮弹生成在近身玩家的身后
+                // 动态计算与玩家的距离，如果玩家贴脸，则缩小生成偏移量
+                let distToPlayer = spawnPos.distanceTo(player.mesh.position);
+                let spawnOffset = Math.min(38.0, Math.max(4.0, distToPlayer - 4.0));
+                
+                spawnPos.add(aimDir.clone().multiplyScalar(spawnOffset)).add(upDir.multiplyScalar(0.3));
+                
+                SoundManager.playExplosion(spawnPos, false);
+                
+                projectiles.push(new Projectile(spawnPos, aimDir, 280, 150, false, 0xffaa00, 3.6));
+            }
+            
+            updateUI() {
+                // T58 的血条由全局的 Boss UI 接管，这里留空以防报错
             }
         }
 
@@ -2688,30 +3094,27 @@
             }
         }
 
-        // 新增短暂火焰喷发特效类 (替代殉爆时的烟雾)
         class FireCloud {
             constructor(pos) {
-                this.life = 1.5; // 存活1.5秒，短暂而剧烈的喷发
+                this.life = 1.5; 
                 this.maxLife = 1.5;
                 this.particles = [];
                 this.group = new THREE.Group();
                 this.group.position.copy(pos);
 
-                const geo = new THREE.SphereGeometry(1.0, 8, 8); // 缩小基础几何体大小
+                const geo = new THREE.SphereGeometry(1.0, 8, 8); 
                 const mat = new THREE.MeshBasicMaterial({
-                    color: 0xff5500, // 橘红火焰色
+                    color: 0xff5500, 
                     transparent: true,
                     opacity: 1.0,
-                    blending: THREE.AdditiveBlending, // 发光混合模式，重叠处更亮
+                    blending: THREE.AdditiveBlending, 
                     depthWrite: false 
                 });
 
                 for(let i = 0; i < 15; i++) {
                     let puff = new THREE.Mesh(geo, mat.clone());
-                    // 集中在底盘中心喷发，减小散布范围
                     puff.position.set((Math.random()-0.5)*2.5, (Math.random())*1.5, (Math.random()-0.5)*2.5);
-                    puff.scaleTarget = 1.0 + Math.random()*1.5; // 减小最大膨胀体积
-                    // 随机颜色偏移：使火焰中心偏黄，边缘偏红
+                    puff.scaleTarget = 1.0 + Math.random()*1.5; 
                     puff.material.color.setHSL(0.05 + Math.random()*0.08, 1.0, 0.5);
                     this.group.add(puff);
                     this.particles.push(puff);
@@ -2727,11 +3130,9 @@
 
                 for(let puff of this.particles) {
                     puff.material.opacity = Math.min(1, opacity * 1.5);
-                    // 火焰快速膨胀，减缓膨胀速度
                     if (puff.scale.x < puff.scaleTarget) {
                         puff.scale.addScalar(dt * 8);
                     }
-                    // 向上高速喷涌，减缓上升速度
                     puff.position.y += dt * 6.0 * progress; 
                     puff.position.x += (Math.random() - 0.5) * dt * 2;
                     puff.position.z += (Math.random() - 0.5) * dt * 2;
@@ -2743,19 +3144,16 @@
             }
         }
 
-        // ==========================================
-        // 可破坏树木物理系统
-        // ==========================================
         function initTreeAssets() {
             if(trunkMat) return;
             trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c4033, roughness: 1.0 });
             leavesMat = new THREE.MeshStandardMaterial({ color: 0x2e4a22, roughness: 0.9, flatShading: true });
             
             stumpGeo = new THREE.CylinderGeometry(0.4, 0.6, 1.2, 7);
-            stumpGeo.translate(0, 0.6, 0); // 原点在底面，方便留在地上
+            stumpGeo.translate(0, 0.6, 0); 
             
             topTrunkGeo = new THREE.CylinderGeometry(0.25, 0.4, 3.2, 7);
-            topTrunkGeo.translate(0, 1.6, 0); // 原点在断裂处底部，作为旋转铰链
+            topTrunkGeo.translate(0, 1.6, 0); 
             
             leavesGeo1 = new THREE.ConeGeometry(3.5, 7, 7);
             leavesGeo2 = new THREE.ConeGeometry(2.8, 6, 7);
@@ -2773,15 +3171,13 @@
                 this.group = new THREE.Group();
                 this.group.position.set(x, this.yBase, z);
 
-                // 1. 留在原地的树桩
                 this.stump = new THREE.Mesh(stumpGeo, trunkMat);
                 this.stump.castShadow = true; this.stump.receiveShadow = true;
                 this.stump.userData = { treeObj: this };
                 this.group.add(this.stump);
 
-                // 2. 会倒下的上半部分
                 this.fallingGroup = new THREE.Group();
-                this.fallingGroup.position.set(0, 1.0, 0); // 断裂点在 y=1.0 处
+                this.fallingGroup.position.set(0, 1.0, 0); 
                 this.group.add(this.fallingGroup);
 
                 let topTrunk = new THREE.Mesh(topTrunkGeo, trunkMat);
@@ -2801,18 +3197,15 @@
                 l3.position.y = 10.0; l3.castShadow = true; l3.receiveShadow = true; l3.userData = { treeObj: this };
                 this.fallingGroup.add(l3);
 
-                // 随机化与缩放
                 this.group.scale.set(scale, scale, scale);
                 this.group.rotation.y = Math.random() * Math.PI * 2;
                 
-                // 树干原本的自然倾斜
                 this.fallingGroup.rotation.x = (Math.random() - 0.5) * 0.1;
                 this.fallingGroup.rotation.z = (Math.random() - 0.5) * 0.1;
 
                 scene.add(this.group);
                 collidables.push(this.group);
 
-                // 加入 AABB 建筑列表，以便坦克检测
                 let colRadius = 0.8 * scale;
                 buildings.push({
                     type: 'tree',
@@ -2826,41 +3219,39 @@
                 this.fallAngle = 0;
                 this.fallSpeed = 0;
                 this.maxFallAngle = 0;
-                this.bounceCount = 0; // 新增：记录触地弹跳次数
+                this.bounceCount = 0; 
             }
 
             breakTree(impactDir) {
                 if (this.isBroken) return;
                 this.isBroken = true;
 
-                // 计算受力倒塌轴线
                 let flatImpact = new THREE.Vector3(impactDir.x, 0, impactDir.z).normalize();
                 if (flatImpact.lengthSq() < 0.1) flatImpact.set(1, 0, 0); 
                 
                 let up = new THREE.Vector3(0, 1, 0);
                 this.fallAxis.crossVectors(up, flatImpact).normalize();
                 
-                // 转换倒塌轴到树木的局部坐标系
                 let inverseGroupQuat = this.group.quaternion.clone().invert();
                 this.fallAxis.applyQuaternion(inverseGroupQuat);
 
-                // 极大地减小初始动量
                 this.fallSpeed = 0.2; 
                 this.maxFallAngle = Math.PI / 2 - 0.1 + (Math.random() * 0.2); 
                 this.bounceCount = 0;
 
                 fallingTrees.push(this);
                 
-                // 在断裂处爆出一团木屑尘土
                 let cutPos = new THREE.Vector3(0, 1.2, 0);
                 this.group.localToWorld(cutPos);
+                
+                SoundManager.playTreeSnap(cutPos);
+                
                 createExplosion(cutPos, 1.0, 0x8b5a2b); 
             }
 
             updateFalling(dt) {
                 if (this.bounceCount > 2) return false;
 
-                // 物理重力加速
                 this.fallSpeed += 12.0 * Math.sin(Math.max(0.1, this.fallAngle)) * dt; 
                 let step = this.fallSpeed * dt;
                 
@@ -2871,6 +3262,9 @@
                     if (this.bounceCount === 0) {
                         let topPos = new THREE.Vector3(0, 10, 0);
                         this.fallingGroup.localToWorld(topPos);
+                        
+                        SoundManager.playTreeThud(topPos);
+                        
                         createExplosion(topPos, 2.5, 0x4a5d23); 
                     }
                     
@@ -2990,7 +3384,6 @@
                         if (this.isPlayerOwned && hitTank.isPlayer) return false;
                         if (!this.isPlayerOwned && !hitTank.isPlayer) return false;
                     }
-                    // 如果命中了树，且这棵树已经倒塌，并且开启了穿透选项，则让射线直接穿透它（返回false不被find选中）
                     if (hitTree) {
                         if (hitTree.isBroken && gameSettings.treePenetration) {
                             return false; 
@@ -3021,11 +3414,16 @@
                     if (tank) {
                         if (tank.isDestroyed) {
                             createExplosion(this.mesh.position, this.isMissile ? 3 : 1);
+                            SoundManager.playExplosion(this.mesh.position, false);
                             return false;
                         }
 
                         let result = tank.handleHit(hitObj, this.damage, this.isMissile);
                         createExplosion(this.mesh.position, this.isMissile ? 4 : 1.5);
+                        
+                        if (!result.killed) {
+                            SoundManager.playExplosion(this.mesh.position, false);
+                        }
                         
                         if (this.isPlayerOwned) {
                             showHitFeedback(result.killed);
@@ -3040,18 +3438,22 @@
                             }
 
                             if (result.killed) {
-                                showKillMessage("摧毁敌军坦克");
-                                // 增加计数
+                                showKillMessage(tank instanceof T58Tank ? "摧毁 T58 重型坦克" : "摧毁敌军坦克");
                                 destroyedEnemyCount++;
                                 updateKillCounterUI();
 
                                 let idx = enemies.indexOf(tank);
                                 if (idx > -1) enemies.splice(idx, 1);
-                                setTimeout(() => spawnEnemies(1), 3000);
+                                
+                                // Boss 生成逻辑：每击杀5个杂兵生成一台 T58
+                                if (destroyedEnemyCount > 0 && destroyedEnemyCount % 15 === 0) {
+                                    setTimeout(() => spawnT58(), 3000);
+                                } else {
+                                    setTimeout(() => spawnEnemies(1), 3000);
+                                }
                             }
                         } else if (tank.isPlayer) {
                             if (result.msg) sendChatMessage(`系统告警: 我们的${result.msg}`);
-                            createExplosion(this.mesh.position, 1.5);
                         }
                     } else if (tree) {
                         if (!tree.isBroken) {
@@ -3059,8 +3461,10 @@
                             tree.breakTree(impactDir);
                         }
                         createExplosion(this.mesh.position, this.isMissile ? 3 : 1);
+                        SoundManager.playExplosion(this.mesh.position, false);
                     } else {
                         createExplosion(this.mesh.position, this.isMissile ? 3 : 1);
+                        SoundManager.playExplosion(this.mesh.position, false);
                     }
                     return false; 
                 }
@@ -3070,10 +3474,10 @@
 
                 this.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), currentDir);
 
-                // 物理地形碰撞销毁
                 let terrainY = getTerrainHeight(this.mesh.position.x, this.mesh.position.z);
                 if (this.mesh.position.y <= terrainY) {
                     createExplosion(this.mesh.position, this.isMissile ? 3 : 1);
+                    SoundManager.playExplosion(this.mesh.position, false);
                     return false;
                 }
 
@@ -3123,11 +3527,9 @@
         }
 
         function buildCity() {
-            // 1. 生成高细分度地形多边形
             const groundGeo = new THREE.PlaneGeometry(300, 300, 60, 60);
             groundGeo.rotateX(-Math.PI / 2);
             
-            // 操控顶点生成起伏
             const pos = groundGeo.attributes.position;
             for (let i = 0; i < pos.count; i++) {
                 let vx = pos.getX(i);
@@ -3149,7 +3551,6 @@
 
             buildings.length = 0;
 
-            // 2. 生成程序化低多边形树木 (支持物理断裂)
             initTreeAssets();
 
             for (let i = 0; i < 60; i++) {
@@ -3162,7 +3563,6 @@
                 new DestructibleTree(x, z, scale);
             }
 
-            // 3. 硬件实例化生成草丛 (InstancedMesh 极大提升性能)
             const grassCount = 4000;
             const grassGeo = new THREE.ConeGeometry(0.3, 1.5, 3);
             grassGeo.translate(0, 0.75, 0); 
@@ -3189,7 +3589,6 @@
             }
             scene.add(grassInstanced);
 
-            // 4. 硬件实例化生成岩石杂物
             const rockCount = 150;
             const rockGeo = new THREE.DodecahedronGeometry(1, 0); 
             const rockMat = new THREE.MeshStandardMaterial({ color: 0x6a6b63, roughness: 0.9, flatShading: true });
@@ -3223,6 +3622,7 @@
             collidables.push(rockInstanced); 
         }
 
+        // 初始化仅生成普通敌军
         function spawnEnemies(count) {
             for(let i=0; i<count; i++) {
                 let ex = (Math.random() - 0.5) * 200;
@@ -3231,10 +3631,32 @@
                     ex += 50 * Math.sign(ex);
                     ez += 50 * Math.sign(ez);
                 }
+                
                 let enemy = new EnemyTank(ex, ez);
                 enemies.push(enemy);
                 scene.add(enemy.mesh);
             }
+        }
+        
+        // 独立的生成 T58 逻辑
+        function spawnT58() {
+            let ex = (Math.random() - 0.5) * 200;
+            let ez = (Math.random() - 0.5) * 200;
+            if (Math.abs(ex) < 60 && Math.abs(ez) < 60) {
+                ex += 80 * Math.sign(ex);
+                ez += 80 * Math.sign(ez);
+            }
+            
+            let boss = new T58Tank(ex, ez);
+            enemies.push(boss);
+            scene.add(boss.mesh);
+            
+            activeBoss = boss; // 追踪当前活跃的 Boss
+            document.getElementById('boss-ui').style.display = 'block';
+            showKillMessage("警告：敌军部署了 T58 重型坦克！", false);
+            
+            // 震撼出场声效
+            SoundManager.playExplosion(boss.mesh.position, true); 
         }
 
         function createExplosion(pos, size, color = 0xff8800) {
@@ -3261,7 +3683,6 @@
             }
         }
 
-        // --- 小地图渲染逻辑 ---
         function drawMinimap() {
             if (!isGameRunning) return;
             const canvas = document.getElementById('minimap-canvas');
@@ -3323,7 +3744,10 @@
                 if (e.hp > 0) {
                     let pos = toMap(e.mesh.position.x, e.mesh.position.z);
                     ctx.beginPath();
-                    ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
+                    
+                    // 对 T58 的图标变大
+                    let r = (e instanceof T58Tank) ? 5 : 3;
+                    ctx.arc(pos.x, pos.y, r, 0, Math.PI * 2);
                     ctx.fill();
                 }
             }
@@ -3372,6 +3796,17 @@
             if (dt > 0.1) dt = 0.1; 
             
             updateCapturePoint(dt);
+            
+            // 更新 Boss 血条逻辑
+            if (activeBoss) {
+                if (activeBoss.hp <= 0 || activeBoss.isDestroyed) {
+                    document.getElementById('boss-ui').style.display = 'none';
+                    activeBoss = null;
+                } else {
+                    let hpPercent = Math.max(0, (activeBoss.hp / activeBoss.maxHp) * 100);
+                    document.getElementById('boss-hp-fill').style.width = hpPercent + '%';
+                }
+            }
 
             if (player && player.hp > 0) {
                 player.update(dt);
@@ -3450,23 +3885,18 @@
                 }
             }
 
-            // 更新残骸物理效果与衰减消失机制 (计算被炸飞的炮塔坠落)
             for (let i = destroyedTanks.length - 1; i >= 0; i--) {
                 let tank = destroyedTanks[i];
                 
-                // 处理残骸自动消失逻辑
                 if (gameSettings.wreckageDecay > 0) {
                     if (tank.decayTimer === undefined) tank.decayTimer = 0;
                     tank.decayTimer += dt;
                     if (tank.decayTimer >= gameSettings.wreckageDecay) {
-                        // 彻底清理渲染对象
                         scene.remove(tank.mesh);
                         scene.remove(tank.turret);
-                        // 清理物理碰撞体，防止空气墙
                         collidables = collidables.filter(c => c !== tank.hull && c !== tank.turret);
-                        // 移出残骸列表
                         destroyedTanks.splice(i, 1);
-                        continue; // 这具残骸已被销毁，跳过后续坠落计算
+                        continue; 
                     }
                 }
 
@@ -3484,6 +3914,8 @@
                         tank.turretVelocity.set(0, 0, 0); 
                         tank.turretRotVelocity.set(0, 0, 0);
                         createExplosion(tank.turret.position, 4); 
+                        
+                        SoundManager.playTreeThud(tank.turret.position); 
                     }
                 }
             }
