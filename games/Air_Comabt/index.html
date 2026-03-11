@@ -1,0 +1,2412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>超视距空战模拟器</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', Courier, monospace;
+            user-select: none;
+            -webkit-user-select: none;
+            cursor: none; 
+        }
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10;
+            pointer-events: none; 
+            transition: background-color 0.1s; 
+        }
+        
+        #mouse-cursor {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 15;
+            transition: transform 0.1s;
+        }
+
+        #plane-crosshair {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            transform: translate(-50%, -50%);
+            z-index: 14;
+        }
+        #plane-crosshair::before { content: ''; position: absolute; top: 9px; left: 0; width: 20px; height: 2px; background: rgba(0,255,0,0.8); }
+        #plane-crosshair::after { content: ''; position: absolute; top: 0; left: 9px; width: 2px; height: 20px; background: rgba(0,255,0,0.8); }
+
+        .reticle {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            box-sizing: border-box;
+            transition: border-color 0.2s;
+        }
+        #reticle-outer {
+            width: 800px;
+            height: 800px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            left: 50%; top: 50%; 
+        }
+        #reticle-inner {
+            width: 60px;
+            height: 60px;
+            border: 2px dashed rgba(255, 255, 255, 0.7);
+            left: 50%; top: 50%;
+        }
+        .reticle.locking { border-color: orange !important; border-style: solid !important; }
+        .reticle.locked { border-color: red !important; border-style: solid !important; }
+
+        .target-box {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            transform: translate(-50%, -50%);
+            display: none; 
+            background:
+                linear-gradient(#0f0, #0f0) top left / 8px 2px no-repeat,
+                linear-gradient(#0f0, #0f0) top left / 2px 8px no-repeat,
+                linear-gradient(#0f0, #0f0) top right / 8px 2px no-repeat,
+                linear-gradient(#0f0, #0f0) top right / 2px 8px no-repeat,
+                linear-gradient(#0f0, #0f0) bottom left / 8px 2px no-repeat,
+                linear-gradient(#0f0, #0f0) bottom left / 2px 8px no-repeat,
+                linear-gradient(#0f0, #0f0) bottom right / 8px 2px no-repeat,
+                linear-gradient(#0f0, #0f0) bottom right / 2px 8px no-repeat;
+        }
+        .target-box.selected {
+            background:
+                linear-gradient(#0f0, #0f0) top left / 18px 3px no-repeat,
+                linear-gradient(#0f0, #0f0) top left / 3px 18px no-repeat,
+                linear-gradient(#0f0, #0f0) top right / 18px 3px no-repeat,
+                linear-gradient(#0f0, #0f0) top right / 3px 18px no-repeat,
+                linear-gradient(#0f0, #0f0) bottom left / 18px 3px no-repeat,
+                linear-gradient(#0f0, #0f0) bottom left / 3px 18px no-repeat,
+                linear-gradient(#0f0, #0f0) bottom right / 18px 3px no-repeat,
+                linear-gradient(#0f0, #0f0) bottom right / 3px 18px no-repeat;
+        }
+        
+        .target-box::after {
+            content: attr(data-name);
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #0f0;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        /* 【新增】：目标框右侧信息容器 */
+        .target-info-right {
+            position: absolute;
+            left: 45px; /* 放置在方框右侧 */
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* 【修改】：两端对齐，分别贴紧上下沿 */
+            height: 40px; /* 与方框同高 */
+            pointer-events: none;
+        }
+
+        /* 【新增】：目标框右侧文本样式 */
+        .target-info-text {
+            color: #0f0;
+            font-size: 12px; /* 【修改】：与敌机型号字体大小一致 */
+            white-space: nowrap;
+            line-height: 1; /* 【修改】：设置为 1 确保严格贴边 */
+        }
+
+        .target-aspect {
+            position: absolute;
+            bottom: -28px; 
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(0, 255, 0, 0.6);
+            border-radius: 50%;
+            box-sizing: border-box;
+        }
+        .target-aspect-line {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 14px; 
+            height: 2px;
+            background-color: #0f0;
+            transform-origin: 0 50%; 
+            margin-top: -1px; 
+        }
+
+        /* 【新增】：导弹指示器外层绝对定位容器 */
+        .missile-indicator-container {
+            position: absolute;
+            width: 0;
+            height: 0;
+            display: none; 
+            z-index: 12;
+            pointer-events: none;
+        }
+
+        /* 【优化】：减小菱形框尺寸，并居中对齐到容器中心 */
+        .missile-box {
+            position: absolute;
+            width: 14px; /* 从 24px 缩小到 14px */
+            height: 14px;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%) rotate(45deg); 
+            border: 2px solid #FF4444; 
+            background-color: rgba(0, 0, 0, 0.6); 
+        }
+
+        /* 【优化】：上方文本严格居中，间距微调 */
+        .missile-label-top {
+            position: absolute;
+            bottom: 12px; /* 距离中心点向上 12px */
+            left: 50%;
+            transform: translateX(-50%); /* 水平严格居中 */
+            color: #FF4444;
+            font-size: 11px;
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: nowrap; /* 强制单行显示 */
+        }
+
+        /* 【优化】：下方文本严格居中，间距微调 */
+        .missile-label-bottom {
+            position: absolute;
+            top: 14px; /* 距离中心点向下 14px */
+            left: 50%;
+            transform: translateX(-50%); /* 水平严格居中 */
+            color: #FF4444;
+            font-size: 11px;
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+            white-space: nowrap;
+        }
+
+        #status-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #0f0;
+            background: rgba(0, 20, 0, 0.5);
+            padding: 15px;
+            border: 1px solid #0f0;
+            backdrop-filter: blur(2px);
+        }
+        #flight-instruments {
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 1px solid #0f0;
+            color: #fff;
+            font-size: 14px;
+        }
+        .status-off { color: #888; }
+        .status-warmup { color: #fff; }
+        .status-locking { color: orange; }
+        .status-locked { color: red; font-weight: bold; animation: blink 0.5s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        #evade-msg {
+            position: absolute;
+            top: 15%; 
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ffffff; 
+            font-size: 36px;
+            font-weight: bold;
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            -webkit-text-stroke: 2px #000000; 
+            text-shadow: 2px 4px 6px rgba(0,0,0,0.5); 
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            z-index: 20;
+            pointer-events: none;
+            letter-spacing: 4px;
+        }
+
+        #destroy-msg {
+            position: absolute;
+            top: 22%; 
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ffffff; 
+            font-size: 40px;
+            font-weight: bold;
+            font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+            -webkit-text-stroke: 2px #cc0000; 
+            text-shadow: 0 0 15px rgba(255, 0, 0, 0.8), 2px 4px 6px rgba(0,0,0,0.5);
+            opacity: 0;
+            transition: opacity 0.1s ease-in-out, transform 0.1s ease-out; 
+            z-index: 20;
+            pointer-events: none;
+            letter-spacing: 2px;
+        }
+
+        #radar-display {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 300px;
+            height: 300px;
+            background-color: rgba(0, 20, 0, 0.6);
+            border: 2px solid #0f0;
+            border-radius: 10px;
+            z-index: 15;
+            pointer-events: none;
+        }
+
+        /* 【修改】：将大小增加 50%，变为 450px */
+        #rwr-display {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 450px;
+            height: 450px;
+            z-index: 15;
+            pointer-events: none;
+        }
+
+        /* 【新增】：开始/预加载界面样式 */
+        #start-menu {
+            position: absolute;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 5, 0, 0.95);
+            z-index: 105; /* 层级高于暂停菜单 */
+            display: flex; 
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #0f0;
+            backdrop-filter: blur(8px);
+        }
+        
+        .pause-content {
+            background: rgba(0, 25, 0, 0.9);
+            border: 2px solid #0f0;
+            padding: 30px 40px;
+            border-radius: 12px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 85vh; 
+            overflow-y: auto; 
+            box-shadow: 0 0 30px rgba(0, 255, 0, 0.2);
+        }
+        
+        .pause-content::-webkit-scrollbar {
+            width: 8px;
+        }
+        .pause-content::-webkit-scrollbar-track {
+            background: rgba(0, 20, 0, 0.5); 
+            border-radius: 4px;
+        }
+        .pause-content::-webkit-scrollbar-thumb {
+            background: rgba(0, 255, 0, 0.5); 
+            border-radius: 4px;
+        }
+        .pause-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 255, 0, 1); 
+        }
+
+        .pause-content h1 { margin-top: 0; color: #fff; text-align: center; font-size: 28px; }
+        .pause-section { margin-top: 20px; text-align: left; }
+        .pause-section h2 { border-bottom: 1px solid #0f0; padding-bottom: 8px; font-size: 18px; margin-bottom: 15px; }
+        .pause-section p { font-size: 15px; margin: 8px 0; color: #ddd; }
+        .key-badge {
+            display: inline-block;
+            background: #222; color: #0f0; border: 1px solid #0f0;
+            padding: 2px 8px; border-radius: 4px; font-weight: bold; margin-right: 10px;
+        }
+        
+        .setting-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        .setting-row select {
+            background: #111;
+            color: #0f0;
+            border: 1px solid #0f0;
+            padding: 8px;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 16px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .setting-row input[type="range"] {
+            flex-grow: 1;
+            margin: 0 15px;
+            accent-color: #0f0;
+        }
+
+        .pause-btn {
+            display: block; width: 100%; margin-top: 30px;
+            background: rgba(0, 255, 0, 0.2); color: #0f0;
+            border: 2px solid #0f0; padding: 15px 0;
+            font-size: 18px; font-weight: bold; font-family: inherit; cursor: pointer;
+            border-radius: 6px; transition: all 0.2s;
+        }
+        .pause-btn:hover { background: #0f0; color: #000; box-shadow: 0 0 15px #0f0; }
+
+        #mobile-controls { display: none; }
+        @media (max-width: 1024px) {
+            #radar-display {
+                transform-origin: bottom right;
+                transform: scale(0.65); 
+            }
+            #rwr-display {
+                transform-origin: bottom left;
+                transform: scale(0.65); 
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+
+<div id="hud">
+    <div id="mouse-cursor"></div>
+    <div id="plane-crosshair"></div>
+
+    <div id="reticle-outer" class="reticle"></div>
+    <div id="reticle-inner" class="reticle"></div>
+    
+    <div id="status-panel">
+        <div id="lock-progress-bar" style="width: 0%; height: 5px; background: orange; transition: width 0.1s;"></div>
+        
+        <div id="flight-instruments">
+            THR: <span id="ui-thr">100</span>%<br>
+            SPD: <span id="ui-spd">250</span> m/s<br>
+            ALT: <span id="ui-alt">500</span> m<br>
+            G-FORCE: <span id="ui-gforce">1.0</span> G
+            <div id="ui-cm-panel" style="margin-top: 8px; color: #ddd;">
+                <div id="ui-flare-text">热焰弹 50</div>
+                <div id="ui-chaff-text">干扰箔 50</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 规避导弹 UI -->
+    <div id="evade-msg">规避导弹</div>
+    <!-- 摧毁目标连杀 UI -->
+    <div id="destroy-msg">摧毁空中目标</div>
+    
+    <div id="targets-ui-container"></div>
+    
+    <!-- 【新增】：敌方导弹 HUD 标记的容器 -->
+    <div id="missiles-ui-container"></div>
+
+    <canvas id="radar-display" width="300" height="300"></canvas>
+    <!-- 【修改】：同步增加 Canvas 的物理分辨率至 450x450 -->
+    <canvas id="rwr-display" width="450" height="450"></canvas>
+</div>
+
+<!-- 【新增】：开始/预加载菜单 DOM -->
+<div id="start-menu">
+    <div class="pause-content" style="text-align: center; max-width: 600px;">
+        <h1 style="font-size: 32px; margin-bottom: 5px;">超视距空战模拟器</h1>
+        <p style="color: #888; font-size: 14px; margin-bottom: 30px; letter-spacing: 2px;">TOP TIER AIR COMBAT SIMULATOR</p>
+        
+        <!-- 【新增】：开始界面的出击前设置模块 -->
+        <div class="pause-section" style="margin-bottom: 25px; text-align: left;">
+            <h2 style="text-align: center; border-bottom: 1px dashed #0f0; margin-bottom: 15px; padding-bottom: 5px;">出击前整备 (Pre-flight Settings)</h2>
+            <div class="setting-row">
+                <label style="margin-right: 15px; color: #fff;">玩家外观模型:</label>
+                <select id="start-model-select">
+                    <option value="biplane" selected>双翼机 (Biplane)</option>
+                    <option value="fighter">苏-30SM (Su-30SM Flanker)</option>
+                    <option value="paper">纸飞机 (Paper Plane)</option>
+                    <option value="droplet">水滴 (Teardrop)</option> <!-- 【新增水滴选项】 -->
+                </select>
+            </div>
+            <div class="setting-row">
+                <label style="color: #fff; width: 220px;">玩家最大过载 (Player G-Limit):</label>
+                <input type="range" id="start-g-limit-slider" min="10" max="200" value="20" step="1">
+                <span id="start-g-limit-value" style="color: #0f0; font-weight: bold; width: 50px;">20 G</span>
+            </div>
+            <div class="setting-row">
+                <label style="color: #fff; width: 220px;">敌方导弹机动 (Missile G-Limit):</label>
+                <input type="range" id="start-missile-g-limit-slider" min="10" max="100" value="35" step="1">
+                <span id="start-missile-g-limit-value" style="color: #0f0; font-weight: bold; width: 50px;">35 G</span>
+            </div>
+            <div class="setting-row">
+                <label style="color: #fff; width: 220px;">干扰弹备弹量 (Flare Ammo):</label>
+                <input type="range" id="start-flare-ammo-slider" min="10" max="200" value="50" step="10">
+                <span id="start-flare-ammo-value" style="color: #0f0; font-weight: bold; width: 50px;">50 发</span>
+            </div>
+        </div>
+
+        <!-- 【新增】：将键位说明加入开始界面 -->
+        <div class="pause-section" style="margin-bottom: 25px; text-align: left;">
+            <h2 style="text-align: center; border-bottom: 1px dashed #0f0; margin-bottom: 15px; padding-bottom: 5px;">键位操作 (Controls)</h2>
+            <p><span class="key-badge">鼠标移动</span>控制机头牵引方向</p>
+            <p><span class="key-badge">W / S</span>增加/减少引擎推力</p>
+            <p><span class="key-badge">A / D</span>滚转</p>
+            <p><span class="key-badge">鼠标滚轮</span>切换雷达跟踪目标</p>
+            <p><span class="key-badge">鼠标右键</span>开启/关闭导弹预热</p>
+            <p><span class="key-badge">鼠标左键</span>发射空空导弹 (需完成锁定)</p>
+            <p><span class="key-badge">3</span>开/关干扰弹循环连射</p>
+            <p><span class="key-badge">C (长按)</span>进入自由视角观察四周</p>
+            <p><span class="key-badge">ESC</span>暂停或继续游戏</p>
+        </div>
+
+        <div style="text-align: left; margin-bottom: 20px;">
+            <div id="loading-text" style="color: #0f0; font-size: 14px; margin-bottom: 8px; font-family: 'Courier New', Courier, monospace;">系统加电自检...</div>
+            <div style="width: 100%; height: 6px; background: #111; border: 1px solid #0f0; border-radius: 3px; overflow: hidden;">
+                <div id="loading-bar" style="width: 0%; height: 100%; background: #0f0; transition: width 0.2s ease-out;"></div>
+            </div>
+        </div>
+        
+        <button class="pause-btn" id="start-btn" style="display: none; margin-top: 20px; animation: blink 1.5s infinite;">开始出击 (START SORTIE)</button>
+    </div>
+</div>
+
+<div id="pause-menu">
+    <div class="pause-content">
+        <h1>游戏暂停 (PAUSED)</h1>
+        
+        <div class="pause-section">
+            <h2>游戏设置 (Settings)</h2>
+            <div class="setting-row">
+                <label style="margin-right: 15px; color: #fff;">玩家外观模型:</label>
+                <select id="model-select">
+                    <option value="biplane" selected>一战双翼机 (Biplane)</option>
+                    <option value="fighter">苏-30SM (Su-30SM Flanker)</option>
+                    <option value="paper">纸飞机 (Paper Plane)</option>
+                    <option value="droplet">三体水滴 (Teardrop)</option> <!-- 【新增水滴选项】 -->
+                </select>
+            </div>
+            <div class="setting-row">
+                <label style="color: #fff; width: 220px;">玩家最大过载 (Player G-Limit):</label>
+                <input type="range" id="g-limit-slider" min="10" max="200" value="20" step="1">
+                <span id="g-limit-value" style="color: #0f0; font-weight: bold; width: 50px;">20 G</span>
+            </div>
+            <div class="setting-row">
+                <label style="color: #fff; width: 220px;">敌方导弹机动 (Missile G-Limit):</label>
+                <input type="range" id="missile-g-limit-slider" min="10" max="100" value="35" step="1">
+                <span id="missile-g-limit-value" style="color: #0f0; font-weight: bold; width: 50px;">35 G</span>
+            </div>
+            <div class="setting-row">
+                <label style="color: #fff; width: 220px;">干扰弹备弹量 (Flare Ammo):</label>
+                <input type="range" id="flare-ammo-slider" min="10" max="200" value="50" step="10">
+                <span id="flare-ammo-value" style="color: #0f0; font-weight: bold; width: 50px;">50 发</span>
+            </div>
+        </div>
+
+        <div class="pause-section">
+            <h2>键位操作 (Controls)</h2>
+            <p><span class="key-badge">鼠标移动</span>控制机头牵引方向</p>
+            <p><span class="key-badge">W / S</span>增加/减少引擎推力</p>
+            <p><span class="key-badge">A / D</span>强制干预滚转姿态 (侧翻)</p>
+            <p><span class="key-badge">鼠标滚轮</span>切换雷达高优跟踪目标</p>
+            <p><span class="key-badge">鼠标右键</span>开启/关闭导弹火控预热</p>
+            <p><span class="key-badge">鼠标左键</span>发射空空导弹 (需完成锁定)</p>
+            <p><span class="key-badge">3</span>开关干扰弹循环连射</p>
+            <p><span class="key-badge">C (长按)</span>进入自由视角观察四周</p>
+            <p><span class="key-badge">ESC</span>暂停或继续游戏</p>
+        </div>
+
+        <button class="pause-btn" id="resume-btn">继续游戏 (RESUME)</button>
+    </div>
+</div>
+
+<script type="module">
+    import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js';
+
+    // ==========================================
+    // 0. 全局状态与暂停逻辑
+    // ==========================================
+    let gameStarted = false; // 【新增】：游戏是否已启动的标志
+    let isPaused = true;     // 【修改】：初始状态设为暂停，等待玩家点击开始
+    
+    let maxGForce = 20; 
+    let missileMaxGForce = 35; 
+    let maxFlareAmmo = 50; // 新增：全局干扰弹备弹量控制
+    let rwrSystem = null; 
+    let flareSystem = null; 
+
+    const pauseMenu = document.getElementById('pause-menu');
+    const resumeBtn = document.getElementById('resume-btn');
+    const clock = new THREE.Clock(); 
+
+    // 【新增】：开始界面的相关 DOM 获取
+    const startMenu = document.getElementById('start-menu');
+    const startBtn = document.getElementById('start-btn');
+    const loadingText = document.getElementById('loading-text');
+    const loadingBar = document.getElementById('loading-bar');
+
+    // 【新增】：点击开始按钮的逻辑
+    startBtn.addEventListener('click', () => {
+        startMenu.style.display = 'none';
+        gameStarted = true;
+        isPaused = false;
+        document.body.style.cursor = 'none';
+        clock.getDelta(); // 重置时间差，防止开局瞬间计算极大 dt 导致瞬移
+    });
+
+    // 规避提示显示的逻辑
+    let evadeTimeout = null;
+    function showEvadeMessage() {
+        const msg = document.getElementById('evade-msg');
+        msg.style.opacity = 1;
+        if (evadeTimeout) clearTimeout(evadeTimeout);
+        evadeTimeout = setTimeout(() => {
+            msg.style.opacity = 0;
+        }, 2000); 
+    }
+
+    // 连杀摧毁提示显示的逻辑
+    let destroyCount = 0;
+    let lastDestroyTime = 0;
+    let destroyTimeout = null;
+    function showDestroyMessage() {
+        // 【修正】：补充获取当前时间的逻辑，解决 now 变量未定义的问题
+        const now = Date.now();
+        const msg = document.getElementById('destroy-msg');
+        
+        if (now - lastDestroyTime <= 5000) {
+            destroyCount++;
+        } else {
+            destroyCount = 1;
+        }
+        lastDestroyTime = now;
+
+        if (destroyCount > 1) {
+            msg.textContent = `${destroyCount}× 摧毁空中目标`;
+        } else {
+            msg.textContent = `摧毁空中目标`;
+        }
+
+        msg.style.opacity = 1;
+        msg.style.transform = "translate(-50%, -50%) scale(1.2)";
+        setTimeout(() => {
+            msg.style.transform = "translate(-50%, -50%) scale(1)";
+        }, 100);
+
+        if (destroyTimeout) clearTimeout(destroyTimeout);
+        destroyTimeout = setTimeout(() => {
+            msg.style.opacity = 0;
+        }, 3000); 
+    }
+    
+    function togglePause() {
+        if (!gameStarted) return; 
+        isPaused = !isPaused;
+        if (isPaused) {
+            pauseMenu.style.display = 'flex';
+            document.body.style.cursor = 'default'; 
+        } else {
+            pauseMenu.style.display = 'none';
+            document.body.style.cursor = 'none';    
+            clock.getDelta(); 
+        }
+    }
+
+    resumeBtn.addEventListener('click', togglePause);
+
+    // ==========================================
+    // 1. 初始化 Three.js 场景与环境
+    // ==========================================
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x6ca6cd); 
+    scene.fog = new THREE.FogExp2(0x6ca6cd, 0.000015); 
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 150000); 
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2); 
+    scene.add(ambientLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.5); 
+    dirLight.position.set(1000, 2000, 500);
+    scene.add(dirLight);
+
+    // ==========================================
+    // 【新增】：程序化生成全局环境反射贴图 (Environment Map)
+    // 解决纯金属材质没有环境贴图就会变成死黑/死白的世界级难题
+    // ==========================================
+    const envCanvas = document.createElement('canvas');
+    envCanvas.width = 512;
+    envCanvas.height = 256;
+    const envCtx = envCanvas.getContext('2d');
+    const envGrad = envCtx.createLinearGradient(0, 0, 0, 256);
+    envGrad.addColorStop(0, '#ffffff');    // 天顶：亮白高光
+    envGrad.addColorStop(0.4, '#6ca6cd');  // 天空：与背景雾气一致的蓝
+    envGrad.addColorStop(0.5, '#111111');  // 地平线：深邃的暗色分割线，极大增强镜面立体感
+    envGrad.addColorStop(1, '#112211');    // 地面：暗绿色
+    envCtx.fillStyle = envGrad;
+    envCtx.fillRect(0, 0, 512, 256);
+    const envTexture = new THREE.CanvasTexture(envCanvas);
+    envTexture.mapping = THREE.EquirectangularReflectionMapping;
+    scene.environment = envTexture; // 将虚拟天空赋给场景，水滴将完美反射它！
+
+    const gridHelper = new THREE.GridHelper(150000, 500, 0x336633, 0x224422);
+    scene.add(gridHelper);
+
+    // ==========================================
+    // 2. 模型生成器库
+    // ==========================================
+    function buildPaperAirplaneModel(isPlayer) {
+        const airplane = new THREE.Group();
+        const paperMat = new THREE.MeshLambertMaterial({ color: 0xeeeeee, side: THREE.DoubleSide, roughness: 0.8 });
+        const geometry = new THREE.BufferGeometry();
+        const vertices = new Float32Array([
+             0,  0, -20,  0,  2,  10, -12,  5,  10, 12,  5,  10,  0, -5,  10 
+        ]);
+        const indices = [ 0, 2, 1, 0, 1, 3, 0, 4, 2, 0, 3, 4 ];
+        geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+        geometry.setIndex(indices);
+        geometry.computeVertexNormals();
+        const paperMesh = new THREE.Mesh(geometry, paperMat);
+        airplane.add(paperMesh);
+        if (isPlayer) {
+            const flareMat = new THREE.MeshBasicMaterial({color: 0x00ffff, transparent: true, opacity: 0.6});
+            const flare = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 6), flareMat);
+            flare.position.set(0, -1, 12);
+            airplane.add(flare);
+        }
+        airplane.scale.set(1.5, 1.5, 1.5);
+        return airplane;
+    }
+
+    function buildSu30Model(isPlayer) {
+        const airplane = new THREE.Group();
+        const mainColor = isPlayer ? 0x5b7c99 : 0x4a5a5a; 
+        const darkColor = 0x1a1a1a;
+        const glassColor = 0xcca010; 
+
+        const matBody = new THREE.MeshLambertMaterial({ color: mainColor });
+        const matDark = new THREE.MeshLambertMaterial({ color: darkColor });
+        const matGlass = new THREE.MeshLambertMaterial({ color: glassColor });
+
+        const bodyGeo = new THREE.CylinderGeometry(2.8, 3.8, 32, 8).rotateX(Math.PI / 2);
+        const body = new THREE.Mesh(bodyGeo, matBody);
+        body.scale.set(1, 0.5, 1); airplane.add(body);
+
+        const noseGeo = new THREE.ConeGeometry(2.8, 16, 8).rotateX(-Math.PI / 2);
+        const nose = new THREE.Mesh(noseGeo, matDark);
+        nose.scale.set(1, 0.5, 1); nose.position.z = -24; nose.rotation.x = 0.05; 
+        airplane.add(nose);
+
+        const canopyGeo = new THREE.SphereGeometry(2, 16, 8);
+        const canopy = new THREE.Mesh(canopyGeo, matGlass);
+        canopy.scale.set(0.85, 1.2, 6.0); canopy.position.set(0, 2, -6); airplane.add(canopy);
+
+        const extSettings = { depth: 0.5, bevelEnabled: true, bevelSegments: 2, steps: 1, bevelSize: 0.1, bevelThickness: 0.1 };
+        
+        const rCanardShape = new THREE.Shape(); rCanardShape.moveTo(0, 4); rCanardShape.lineTo(5, 0); rCanardShape.lineTo(5, -2); rCanardShape.lineTo(0, -4); rCanardShape.lineTo(0, 4);
+        const rCanard = new THREE.Mesh(new THREE.ExtrudeGeometry(rCanardShape, extSettings).rotateX(Math.PI / 2), matBody);
+        rCanard.position.set(2, 0.5, -7); airplane.add(rCanard);
+
+        const lCanardShape = new THREE.Shape(); lCanardShape.moveTo(0, 4); lCanardShape.lineTo(-5, 0); lCanardShape.lineTo(-5, -2); lCanardShape.lineTo(0, -4); lCanardShape.lineTo(0, 4);
+        const lCanard = new THREE.Mesh(new THREE.ExtrudeGeometry(lCanardShape, extSettings).rotateX(Math.PI / 2), matBody);
+        lCanard.position.set(-2, 0.5, -7); airplane.add(lCanard);
+
+        const rightWingShape = new THREE.Shape(); rightWingShape.moveTo(0, 12); rightWingShape.lineTo(18, -2); rightWingShape.lineTo(18, -6); rightWingShape.lineTo(0, -12); rightWingShape.lineTo(0, 12);
+        const rightWing = new THREE.Mesh(new THREE.ExtrudeGeometry(rightWingShape, extSettings).rotateX(Math.PI / 2), matBody);
+        rightWing.position.set(2, 0, 4); airplane.add(rightWing);
+
+        const leftWingShape = new THREE.Shape(); leftWingShape.moveTo(0, 12); leftWingShape.lineTo(-18, -2); leftWingShape.lineTo(-18, -6); leftWingShape.lineTo(0, -12); leftWingShape.lineTo(0, 12);
+        const leftWing = new THREE.Mesh(new THREE.ExtrudeGeometry(leftWingShape, extSettings).rotateX(Math.PI / 2), matBody);
+        leftWing.position.set(-2, 0, 4); airplane.add(leftWing);
+
+        const rightTailShape = new THREE.Shape(); rightTailShape.moveTo(0, 0); rightTailShape.lineTo(4, -8); rightTailShape.lineTo(4, -12); rightTailShape.lineTo(0, -6); rightTailShape.lineTo(0, 0);
+        const rightTail = new THREE.Mesh(new THREE.ExtrudeGeometry(rightTailShape, extSettings).rotateX(Math.PI / 2), matDark);
+        rightTail.position.set(4, 1.5, 12); rightTail.rotation.z = -Math.PI / 24; rightTail.rotation.x = Math.PI / 12; airplane.add(rightTail);
+
+        const leftTailShape = new THREE.Shape(); leftTailShape.moveTo(0, 0); leftTailShape.lineTo(-4, -8); leftTailShape.lineTo(-4, -12); leftTailShape.lineTo(0, -6); leftTailShape.lineTo(0, 0);
+        const leftTail = new THREE.Mesh(new THREE.ExtrudeGeometry(leftTailShape, extSettings).rotateX(Math.PI / 2), matDark);
+        leftTail.position.set(-4, 1.5, 12); leftTail.rotation.z = Math.PI / 24; leftTail.rotation.x = Math.PI / 12; airplane.add(leftTail);
+
+        const rHtailShape = new THREE.Shape(); rHtailShape.moveTo(0, 2); rHtailShape.lineTo(8, -4); rHtailShape.lineTo(8, -8); rHtailShape.lineTo(0, -10); rHtailShape.lineTo(0, 2);
+        const rHtail = new THREE.Mesh(new THREE.ExtrudeGeometry(rHtailShape, extSettings).rotateX(Math.PI / 2), matBody);
+        rHtail.position.set(4, -0.5, 15); airplane.add(rHtail);
+
+        const lHtailShape = new THREE.Shape(); lHtailShape.moveTo(0, 2); lHtailShape.lineTo(-8, -4); lHtailShape.lineTo(-8, -8); lHtailShape.lineTo(0, -10); lHtailShape.lineTo(0, 2);
+        const lHtail = new THREE.Mesh(new THREE.ExtrudeGeometry(lHtailShape, extSettings).rotateX(Math.PI / 2), matBody);
+        lHtail.position.set(-4, -0.5, 15); airplane.add(lHtail);
+
+        const tailBoom = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 0.2, 14, 8).rotateX(Math.PI/2), matBody);
+        tailBoom.position.set(0, 0, 16); airplane.add(tailBoom);
+
+        const engineMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+        const engine1 = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.4, 6, 8).rotateX(Math.PI/2), engineMat);
+        engine1.position.set(3.5, -0.5, 16); airplane.add(engine1);
+        const engine2 = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.4, 6, 8).rotateX(Math.PI/2), engineMat);
+        engine2.position.set(-3.5, -0.5, 16); airplane.add(engine2);
+
+        if (isPlayer) {
+            const flareMat = new THREE.MeshBasicMaterial({color: 0xffaa00, transparent: true, opacity: 0.8});
+            const flare1 = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 0.1, 10, 8).rotateX(Math.PI/2), flareMat);
+            flare1.position.set(3.5, -0.5, 21); airplane.add(flare1);
+            const flare2 = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 0.1, 10, 8).rotateX(Math.PI/2), flareMat);
+            flare2.position.set(-3.5, -0.5, 21); airplane.add(flare2);
+        }
+
+        airplane.scale.set(1.5, 1.5, 1.5);
+        return airplane;
+    }
+
+    function buildBiplaneModel(isPlayer) {
+        const airplane = new THREE.Group();
+        
+        const matWood = new THREE.MeshLambertMaterial({ color: 0x8B4513 }); 
+        const matCanvas = new THREE.MeshLambertMaterial({ color: 0xD2B48C }); 
+        const matMetal = new THREE.MeshLambertMaterial({ color: 0x777777 }); 
+        const matDark = new THREE.MeshLambertMaterial({ color: 0x222222 }); 
+
+        const bodyGeo = new THREE.CylinderGeometry(2, 1.5, 30, 8).rotateX(Math.PI / 2);
+        const body = new THREE.Mesh(bodyGeo, matWood);
+        body.position.z = 2; 
+        airplane.add(body);
+
+        const cockpit = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 4, 8).rotateX(Math.PI / 2), matDark);
+        cockpit.position.set(0, 1.0, 2);
+        airplane.add(cockpit);
+
+        const nose = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 2, 6, 8).rotateX(Math.PI / 2), matMetal);
+        nose.position.z = -16;
+        airplane.add(nose);
+
+        const wingGeo = new THREE.BoxGeometry(36, 0.5, 6);
+        
+        const bottomWing = new THREE.Mesh(wingGeo, matCanvas);
+        bottomWing.position.set(0, -1.5, -5);
+        airplane.add(bottomWing);
+
+        const topWing = new THREE.Mesh(wingGeo, matCanvas);
+        topWing.position.set(0, 3.5, -5);
+        airplane.add(topWing);
+
+        const strutGeo = new THREE.CylinderGeometry(0.2, 0.2, 5);
+        const strutsPositions = [
+            [-12, 1.0, -5], [12, 1.0, -5],  
+            [-5, 1.0, -5], [5, 1.0, -5]     
+        ];
+        strutsPositions.forEach(pos => {
+            const strut = new THREE.Mesh(strutGeo, matWood);
+            strut.position.set(pos[0], pos[1], pos[2]);
+            airplane.add(strut);
+        });
+
+        const hTail = new THREE.Mesh(new THREE.BoxGeometry(12, 0.4, 4), matCanvas);
+        hTail.position.set(0, 0, 15);
+        airplane.add(hTail);
+
+        const vTail = new THREE.Mesh(new THREE.BoxGeometry(0.4, 6, 5), matCanvas);
+        vTail.position.set(0, 3, 15);
+        airplane.add(vTail);
+
+        const gearStrutGeo = new THREE.CylinderGeometry(0.2, 0.2, 4);
+        
+        const lGear = new THREE.Mesh(gearStrutGeo, matMetal);
+        lGear.position.set(-3, -3, -12);
+        lGear.rotation.z = Math.PI / 6;
+        airplane.add(lGear);
+        
+        const rGear = new THREE.Mesh(gearStrutGeo, matMetal);
+        rGear.position.set(3, -3, -12);
+        rGear.rotation.z = -Math.PI / 6;
+        airplane.add(rGear);
+
+        const wheelGeo = new THREE.CylinderGeometry(1.5, 1.5, 0.8, 12).rotateZ(Math.PI / 2);
+        const lWheel = new THREE.Mesh(wheelGeo, matDark);
+        lWheel.position.set(-4.5, -4.5, -12);
+        airplane.add(lWheel);
+        
+        const rWheel = new THREE.Mesh(wheelGeo, matDark);
+        rWheel.position.set(4.5, -4.5, -12);
+        airplane.add(rWheel);
+
+        const tailWheel = new THREE.Mesh(new THREE.SphereGeometry(0.6, 8, 8), matDark);
+        tailWheel.position.set(0, -1.5, 16);
+        airplane.add(tailWheel);
+
+        const propellerGroup = new THREE.Group();
+        propellerGroup.position.z = -19.5; 
+
+        const propHub = new THREE.Mesh(new THREE.ConeGeometry(0.8, 2, 8).rotateX(-Math.PI / 2), matMetal);
+        propellerGroup.add(propHub);
+
+        const bladeGeo = new THREE.BoxGeometry(14, 0.8, 0.2);
+        const blade = new THREE.Mesh(bladeGeo, matWood);
+        propellerGroup.add(blade);
+
+        airplane.add(propellerGroup);
+        airplane.userData.propeller = propellerGroup;
+
+        if (isPlayer) {
+            const exhaustMat = new THREE.MeshBasicMaterial({color: 0xffaa00, transparent: true, opacity: 0.4});
+            const exhaust = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 3), exhaustMat);
+            exhaust.position.set(0, -1, 18);
+            airplane.add(exhaust);
+        }
+
+        airplane.scale.set(1.5, 1.5, 1.5);
+        return airplane;
+    }
+
+    // 【新增：三体水滴模型生成器】
+    function buildDropletModel(isPlayer) {
+        const dropletGroup = new THREE.Group();
+        
+        const points = [];
+        // 头部半圆 (前部 Z 轴为负方向，Lathe围绕Y轴旋转)
+        for (let i = 0; i <= 20; i++) {
+            let t = i / 20;
+            let y = -5 * (1 - t); // Y 从 -5 到 0
+            let x = Math.sqrt(25 - y * y); // 完美圆形方程
+            points.push(new THREE.Vector2(x, y));
+        }
+        // 尾部流线型水滴收束 (平滑过渡公式)
+        for (let i = 1; i <= 40; i++) {
+            let t = i / 40;
+            let y = 20 * t; // Y 从 0 到 20
+            // 完美的连续水滴函数：在交界处(t=0)导数为0，完美衔接头部半球，没有任何折角！
+            let x = 5 * Math.pow(1 - t, 2) * (1 + 2 * t); 
+            points.push(new THREE.Vector2(x, y));
+        }
+
+        // 极高细分精度以保证视觉上的“绝对光滑”
+        const dropletGeo = new THREE.LatheGeometry(points, 64);
+        dropletGeo.rotateX(Math.PI / 2); // 【修正】：翻转180度，使圆润的头部朝前(-Z)，尖锐的尾部朝后(+Z)
+        dropletGeo.computeVertexNormals();
+
+        // 【终极方案】：真实的物理镜面。依赖于上方生成的 scene.environment 产生绝美反射。
+        const dropletMat = new THREE.MeshPhysicalMaterial({
+            color: 0x222222,     // 极暗的基底（配合图中深邃的黑色）
+            metalness: 1.0,      // 100% 纯金属镜面
+            roughness: 0.0,      // 0% 粗糙度，绝对光滑无瑕疵
+            envMapIntensity: 2.0,// 强化虚拟环境的反射强度
+            clearcoat: 1.0,      // 清漆层
+            clearcoatRoughness: 0.0,
+            flatShading: false
+        });
+
+        const dropletMesh = new THREE.Mesh(dropletGeo, dropletMat);
+        dropletGroup.add(dropletMesh);
+
+        // 【新增】：还原图中的等离子推进光束
+        if (isPlayer) {
+            const beamGroup = new THREE.Group();
+            beamGroup.position.set(0, 0, 20); // 挂载在水滴最尖锐的尾部
+
+            // 1. 光束核心 (亮白高能核心)
+            const coreGeo = new THREE.CylinderGeometry(0.3, 0.05, 150, 16);
+            coreGeo.rotateX(Math.PI / 2); // 朝向后方(+Z)
+            coreGeo.translate(0, 0, 75);
+            const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false });
+            beamGroup.add(new THREE.Mesh(coreGeo, coreMat));
+
+            // 2. 内层辉光 (浅蓝)
+            const glow1Geo = new THREE.CylinderGeometry(1.2, 0.2, 160, 16);
+            glow1Geo.rotateX(Math.PI / 2);
+            glow1Geo.translate(0, 0, 80);
+            const glow1Mat = new THREE.MeshBasicMaterial({ color: 0x3399ff, transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false });
+            beamGroup.add(new THREE.Mesh(glow1Geo, glow1Mat));
+
+            // 3. 外层光晕 (深邃蓝)
+            const glow2Geo = new THREE.CylinderGeometry(3.0, 0.5, 180, 16);
+            glow2Geo.rotateX(Math.PI / 2);
+            glow2Geo.translate(0, 0, 90);
+            const glow2Mat = new THREE.MeshBasicMaterial({ color: 0x0033aa, transparent: true, opacity: 0.3, blending: THREE.AdditiveBlending, depthWrite: false });
+            beamGroup.add(new THREE.Mesh(glow2Geo, glow2Mat));
+
+            dropletGroup.add(beamGroup);
+            dropletGroup.userData.plasmaBeam = beamGroup; // 保存引用用于动态更新
+        }
+
+        // 【修改】：大幅增大水滴体积，极具压迫感
+        dropletGroup.scale.set(2.5, 2.5, 2.5); 
+        return dropletGroup;
+    }
+
+    // ==========================================
+    // 3. 核心玩家实体
+    // ==========================================
+    const playerMeshGroup = new THREE.Group();
+    playerMeshGroup.position.set(0, 5000, 0); 
+    scene.add(playerMeshGroup);
+
+    const player = {
+        mesh: playerMeshGroup,
+        speed: 500,
+        throttle: 0.8, 
+        maxSpeed: 800, 
+        minSpeed: 200,
+        angularVelocity: new THREE.Vector3(0, 0, 0), 
+        gForce: 1.0 
+    };
+
+    let currentPlayerVisual = null;
+    function updatePlayerModel(modelType) {
+        if (currentPlayerVisual) { player.mesh.remove(currentPlayerVisual); }
+        
+        if (modelType === 'fighter') { 
+            currentPlayerVisual = buildSu30Model(true); 
+        } else if (modelType === 'paper') { 
+            currentPlayerVisual = buildPaperAirplaneModel(true); 
+        } else if (modelType === 'biplane') {
+            currentPlayerVisual = buildBiplaneModel(true);
+        // 【新增】：挂载水滴模型
+        } else if (modelType === 'droplet') {
+            currentPlayerVisual = buildDropletModel(true);
+        }
+        
+        // 【新增】：在模型对象上记录其类型，供物理引擎识别
+        currentPlayerVisual.userData.modelType = modelType;
+
+        player.mesh.add(currentPlayerVisual);
+    }
+    // 默认初始化为一战双翼机
+    updatePlayerModel('biplane');
+
+    // ==========================================
+    // 【修改】：双端设置面板同步联动逻辑
+    // ==========================================
+    
+    // 1. 玩家模型选择同步
+    const startModelSelect = document.getElementById('start-model-select');
+    const pauseModelSelect = document.getElementById('model-select');
+    function handleModelChange(e) {
+        const val = e.target.value;
+        startModelSelect.value = val;
+        pauseModelSelect.value = val;
+        updatePlayerModel(val);
+        e.target.blur();
+    }
+    startModelSelect.addEventListener('change', handleModelChange);
+    pauseModelSelect.addEventListener('change', handleModelChange);
+
+    // 2. 玩家G力限制同步
+    const startGLimitSlider = document.getElementById('start-g-limit-slider');
+    const startGLimitValue = document.getElementById('start-g-limit-value');
+    const pauseGLimitSlider = document.getElementById('g-limit-slider');
+    const pauseGLimitValue = document.getElementById('g-limit-value');
+    function handleGLimitChange(e) {
+        maxGForce = parseFloat(e.target.value);
+        startGLimitSlider.value = maxGForce;
+        pauseGLimitSlider.value = maxGForce;
+        startGLimitValue.textContent = `${maxGForce} G`;
+        pauseGLimitValue.textContent = `${maxGForce} G`;
+        e.target.blur();
+    }
+    startGLimitSlider.addEventListener('input', handleGLimitChange);
+    pauseGLimitSlider.addEventListener('input', handleGLimitChange);
+
+    // 3. 敌方导弹机动限制同步
+    const startMissileGLimitSlider = document.getElementById('start-missile-g-limit-slider');
+    const startMissileGLimitValue = document.getElementById('start-missile-g-limit-value');
+    const pauseMissileGLimitSlider = document.getElementById('missile-g-limit-slider');
+    const pauseMissileGLimitValue = document.getElementById('missile-g-limit-value');
+    function handleMissileGLimitChange(e) {
+        missileMaxGForce = parseFloat(e.target.value);
+        startMissileGLimitSlider.value = missileMaxGForce;
+        pauseMissileGLimitSlider.value = missileMaxGForce;
+        startMissileGLimitValue.textContent = `${missileMaxGForce} G`;
+        pauseMissileGLimitValue.textContent = `${missileMaxGForce} G`;
+        e.target.blur();
+    }
+    startMissileGLimitSlider.addEventListener('input', handleMissileGLimitChange);
+    pauseMissileGLimitSlider.addEventListener('input', handleMissileGLimitChange);
+
+    // 4. 干扰弹备弹量同步
+    const startFlareAmmoSlider = document.getElementById('start-flare-ammo-slider');
+    const startFlareAmmoValue = document.getElementById('start-flare-ammo-value');
+    const pauseFlareAmmoSlider = document.getElementById('flare-ammo-slider');
+    const pauseFlareAmmoValue = document.getElementById('flare-ammo-value');
+    function handleFlareAmmoChange(e) {
+        maxFlareAmmo = parseInt(e.target.value);
+        startFlareAmmoSlider.value = maxFlareAmmo;
+        pauseFlareAmmoSlider.value = maxFlareAmmo;
+        startFlareAmmoValue.textContent = `${maxFlareAmmo} 发`;
+        pauseFlareAmmoValue.textContent = `${maxFlareAmmo} 发`;
+        
+        if (flareSystem) {
+            flareSystem.flareAmmo = maxFlareAmmo;
+            flareSystem.chaffAmmo = maxFlareAmmo;
+        }
+        e.target.blur();
+    }
+    startFlareAmmoSlider.addEventListener('input', handleFlareAmmoChange);
+    pauseFlareAmmoSlider.addEventListener('input', handleFlareAmmoChange);
+
+    // ==========================================
+
+    let mouseScreen = new THREE.Vector2(window.innerWidth/2, window.innerHeight/2);
+    let mouseNDC = new THREE.Vector2(0, 0);
+    const keys = { w: false, s: false, a: false, d: false, c: false };
+
+    document.addEventListener('mousemove', (e) => {
+        if (!gameStarted || isPaused) return; // 【修改】：未开始时禁止视角互动
+        mouseScreen.x = e.clientX; mouseScreen.y = e.clientY;
+        mouseNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouseNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') { togglePause(); return; }
+        if (!gameStarted) return; // 【新增】：未开始时禁用其他按键
+        
+        if (e.key === '3' && flareSystem) { flareSystem.toggle(); }
+
+        const k = e.key.toLowerCase(); if(keys.hasOwnProperty(k)) keys[k] = true;
+    });
+    
+    document.addEventListener('keyup', (e) => {
+        if (!gameStarted) return; // 【新增】
+        const k = e.key.toLowerCase(); if(keys.hasOwnProperty(k)) keys[k] = false;
+    });
+
+    // ==========================================
+    // 新增：各类粒子与烟雾生成器
+    // ==========================================
+    const particles = []; 
+    function spawnExplosion(pos) {
+        const mat = new THREE.MeshBasicMaterial({color: 0xff8800, transparent: true});
+        const mesh = new THREE.Mesh(new THREE.SphereGeometry(100, 8, 8), mat); 
+        mesh.position.copy(pos); scene.add(mesh); particles.push({ mesh: mesh, type: 'exp', life: 1.0 });
+    }
+    
+    function spawnSmoke(pos) {
+        const mat = new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.85});
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(20, 20, 20), mat); 
+        mesh.position.copy(pos); 
+        mesh.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+        scene.add(mesh); 
+        particles.push({ mesh: mesh, type: 'smoke', life: 1.0 });
+    }
+    
+    function spawnContrail(pos) {
+        const mat = new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.3});
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(4, 4, 15), mat);
+        mesh.position.copy(pos); mesh.quaternion.copy(player.mesh.quaternion);
+        scene.add(mesh); particles.push({ mesh: mesh, type: 'contrail', life: 1.0 });
+    }
+
+    function spawnFlareSmoke(pos, parentVel) {
+        const mat = new THREE.MeshLambertMaterial({
+            color: 0xdddddd, 
+            transparent: true, 
+            opacity: 0.5
+        });
+        const mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(8, 0), mat);
+        mesh.position.copy(pos);
+        mesh.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+        scene.add(mesh);
+        
+        const vel = parentVel.clone().multiplyScalar(0.15); 
+        vel.x += (Math.random() - 0.5) * 30; 
+        vel.y += (Math.random() - 0.5) * 30;
+        vel.z += (Math.random() - 0.5) * 30;
+        
+        particles.push({ mesh: mesh, type: 'flareSmoke', life: 1.0, velocity: vel });
+    }
+
+    // ==========================================
+    // 视觉优化版：极简概率干扰弹诱骗系统 (Bloom & Trail)
+    // ==========================================
+    class FlareSystem {
+        constructor(scene, player) {
+            this.scene = scene;
+            this.player = player;
+            
+            this.isDispensing = false; 
+            
+            this.flareInterval = 0.2; 
+            this.flareTimer = 0;
+            this.particles = [];
+            
+            // 【修改】：初始化时读取全局配置的备弹量
+            this.flareAmmo = maxFlareAmmo; 
+            this.chaffAmmo = maxFlareAmmo; 
+            
+            this.flareMat = new THREE.MeshBasicMaterial({
+                color: 0xffffff, 
+                transparent: true,
+                opacity: 1.0,
+                blending: THREE.AdditiveBlending, 
+                depthWrite: false 
+            });
+            this.flareGeo = new THREE.SphereGeometry(2.0, 8, 8); 
+
+            this.colorWhite = new THREE.Color(0xffffff);
+            this.colorYellow = new THREE.Color(0xffff44);
+            this.colorOrange = new THREE.Color(0xff8800);
+            this.colorRed = new THREE.Color(0xaa0000);
+        }
+
+        toggle() {
+            if (this.flareAmmo > 0 || this.chaffAmmo > 0) {
+                this.isDispensing = !this.isDispensing;
+                if (this.isDispensing) {
+                    this.flareTimer = this.flareInterval; 
+                }
+            } else {
+                this.isDispensing = false; 
+            }
+        }
+
+        update(dt) {
+            if (this.isDispensing) {
+                this.flareTimer += dt;
+                if (this.flareTimer >= this.flareInterval) {
+                    if (this.flareAmmo > 0 && this.chaffAmmo > 0) {
+                        this.spawnFlare();
+                        this.flareAmmo--; 
+                        this.chaffAmmo--;
+                        this.flareTimer = 0; 
+                    } else {
+                        this.isDispensing = false; 
+                    }
+                }
+            }
+
+            for (let i = this.particles.length - 1; i >= 0; i--) {
+                let p = this.particles[i];
+                p.life -= dt * 0.3; 
+                p.smokeTimer = (p.smokeTimer || 0) + dt;
+                
+                p.mesh.position.add(p.velocity.clone().multiplyScalar(dt));
+                
+                p.velocity.y -= 9.8 * dt * 45; 
+                p.velocity.x *= (1.0 - dt * 0.85); 
+                p.velocity.z *= (1.0 - dt * 0.85);
+                
+                if (p.life < 0.95 && p.smokeTimer > 0.06) {
+                    spawnFlareSmoke(p.mesh.position, p.velocity);
+                    p.smokeTimer = 0;
+                }
+
+                if (p.life <= 0) {
+                    this.scene.remove(p.mesh);
+                    p.mesh.material.dispose(); 
+                    this.particles.splice(i, 1);
+                } else {
+                    const mat = p.mesh.material;
+                    if (p.life > 0.8) {
+                        mat.color.lerpColors(this.colorYellow, this.colorWhite, (p.life - 0.8) * 5.0);
+                    } else if (p.life > 0.5) {
+                        mat.color.lerpColors(this.colorOrange, this.colorYellow, (p.life - 0.5) * 3.33);
+                    } else {
+                        mat.color.lerpColors(this.colorRed, this.colorOrange, p.life * 2.0);
+                        mat.opacity = p.life * 2.0; 
+                    }
+
+                    const s = 0.6 + p.life * 0.6;
+                    p.mesh.scale.set(s, s, s);
+                }
+            }
+        }
+
+        spawnFlare() {
+            const spread = [-1, 1]; 
+            
+            const playerRight = new THREE.Vector3(1, 0, 0).applyQuaternion(this.player.mesh.quaternion);
+            const playerUp = new THREE.Vector3(0, 1, 0).applyQuaternion(this.player.mesh.quaternion);
+            const playerForward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.player.mesh.quaternion);
+
+            spread.forEach(dir => {
+                const mesh = new THREE.Mesh(this.flareGeo, this.flareMat.clone()); 
+                
+                const offset = playerRight.clone().multiplyScalar(dir * 6).add(playerForward.clone().multiplyScalar(8));
+                mesh.position.copy(this.player.mesh.position).add(offset);
+                
+                const vel = playerForward.clone().multiplyScalar(this.player.speed * 0.85); 
+                vel.add(playerRight.clone().multiplyScalar(dir * 280)); 
+                vel.add(playerUp.clone().multiplyScalar(-30)); 
+                
+                vel.x += (Math.random() - 0.5) * 60; 
+                vel.y += (Math.random() - 0.5) * 60;
+                vel.z += (Math.random() - 0.5) * 60;
+
+                const scale = 0.6 + Math.random() * 0.6;
+                mesh.scale.set(scale, scale, scale);
+
+                this.scene.add(mesh);
+                this.particles.push({ mesh: mesh, life: 1.0, velocity: vel });
+            });
+        }
+    }
+
+    flareSystem = new FlareSystem(scene, player);
+
+    // ==========================================
+    // 4. 基于错峰心跳(Staggered Tick)的敌机 AI 类
+    // ==========================================
+    class Enemy {
+        constructor(mesh, uiElement, radarCode) {
+            this.mesh = mesh;
+            this.uiElement = uiElement;
+            this.active = true;
+            
+            // 【修改】：将 speed 拆分为基础速度和当前速度，并加入目标速度用于平滑过渡
+            this.baseSpeed = 350 + Math.random() * 200; // 每架敌机有不同的巡航速度 (350~550)
+            this.speed = this.baseSpeed;
+            this.targetSpeed = this.baseSpeed;
+            
+            // 【新增】：AI 机动状态变量
+            this.targetRoll = 0; // 目标滚转角
+            this.currentRoll = 0; // 当前滚转角
+            this.turnDuration = 0; // 当前机动动作剩余时间
+            
+            this.radarCode = radarCode; 
+
+            this.radarState = 0;
+            this.aiInterval = 0.5;
+            this.aiTimer = Math.random() * 0.5;
+            this.missileCooldown = 0;
+            this.launchWarningTimer = 0;
+        }
+
+        update(deltaTime, playerPosition) {
+            if (this.missileCooldown > 0) {
+                this.missileCooldown -= deltaTime;
+            }
+
+            if (this.radarState === 2) {
+                this.launchWarningTimer -= deltaTime;
+                if (this.launchWarningTimer <= 0) {
+                    this.radarState = 0; 
+                }
+            }
+
+            // 【新增】：敌机自身的物理姿态平滑更新 (每帧执行)
+            // 1. 速度平滑过渡 (模拟节流阀推拉)
+            this.speed += (this.targetSpeed - this.speed) * deltaTime * 0.5;
+            
+            // 2. 滚转角平滑过渡
+            this.currentRoll += (this.targetRoll - this.currentRoll) * deltaTime * 1.5;
+            
+            // 3. 基于滚转角产生转向 (横向角速度)
+            if (Math.abs(this.currentRoll) > 0.05) {
+                // 【修改】：修正偏航的正负号。向左倾斜（Roll>0）应该导致向左偏航。
+                const turnRate = this.currentRoll * 0.6 * deltaTime;
+                this.mesh.rotateY(turnRate);
+                
+                // 为了视觉上更逼真，让飞机的 3D 模型产生侧倾
+                // 注意：这里使用临时旋转叠加以避免万向节死锁，真实做法应使用四元数，此处为简化视觉表现
+                this.mesh.rotateZ(this.currentRoll * deltaTime * 2.0); 
+                // 简单地让其回正，产生类似弹簧的效果
+                this.mesh.rotation.z *= (1.0 - deltaTime * 2.0);
+            }
+
+            this.aiTimer += deltaTime;
+
+            // 错峰心跳逻辑：用于决策雷达状态和下一步机动动作
+            if (this.aiTimer >= this.aiInterval) {
+                this.aiTimer -= this.aiInterval; 
+
+                // 【修改】：优化巡逻机动决策，使其“以背对玩家朝前飞为主，适当左右偏航”
+                this.turnDuration -= this.aiInterval;
+                if (this.turnDuration <= 0) {
+                    // 1. 计算远离玩家的理想方向 (在水平面上的投影)
+                    const awayDir = new THREE.Vector3().subVectors(this.mesh.position, playerPosition);
+                    awayDir.y = 0; 
+                    if (awayDir.lengthSq() > 0) awayDir.normalize();
+
+                    // 2. 获取敌机当前的机头朝向 (水平面投影)
+                    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.mesh.quaternion);
+                    forward.y = 0;
+                    if (forward.lengthSq() > 0) forward.normalize();
+
+                    // 3. 利用叉积计算水平夹角偏差：正数说明“远离方向”在机头左侧，需要左转；负数在右侧
+                    const crossY = forward.clone().cross(awayDir).y;
+                    
+                    // 4. 产生一个纠正滚转的趋势角 (试图对齐逃离方向)
+                    let desiredRoll = crossY * 2.0; 
+                    
+                    // 5. 产生一个随机的偏航干扰角 (模拟蛇形机动/游荡，避免走绝对直线)
+                    const wander = (Math.random() - 0.5) * (Math.PI / 1.5);
+                    
+                    // 6. 综合最终的滚转指令：60%听从逃离引导，40%随机游荡机动
+                    this.targetRoll = (desiredRoll * 0.6) + (wander * 0.4);
+                    // 限制最大坡度在 70 度左右
+                    this.targetRoll = THREE.MathUtils.clamp(this.targetRoll, -Math.PI/2.5, Math.PI/2.5);
+
+                    // 7. 速度推拉
+                    this.targetSpeed = this.baseSpeed + (Math.random() - 0.5) * 150;
+                    this.turnDuration = 2.0 + Math.random() * 3.0; // 维持 2~5 秒
+                }
+
+                if (this.radarState !== 2) {
+                    const dist = this.mesh.position.distanceTo(playerPosition);
+
+                    if (dist > 90000 || dist < 1000) {
+                        this.radarState = 0;
+                    } else {
+                        const enemyLocalPlayer = this.mesh.worldToLocal(playerPosition.clone());
+                        const isFacingPlayer = enemyLocalPlayer.z < 0 && 
+                                               Math.abs(enemyLocalPlayer.x) < Math.abs(enemyLocalPlayer.z) * 1.5 && 
+                                               Math.abs(enemyLocalPlayer.y) < Math.abs(enemyLocalPlayer.z) * 1.5;
+
+                        if (!isFacingPlayer) {
+                            this.radarState = 0; 
+                        } else {
+                            if (this.radarState === 0) {
+                                if (Math.random() < 0.25) {
+                                    this.radarState = 1;
+                                }
+                            } else if (this.radarState === 1) {
+                                const roll = Math.random();
+                                if (roll < 0.10) {
+                                    this.radarState = 0;
+                                } else if (roll > 0.85 && this.missileCooldown <= 0) {
+                                    this.radarState = 2; 
+                                    this.launchWarningTimer = 2.0; 
+                                    this.missileCooldown = 12.0; 
+                                    this.fireMissile(); 
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        fireMissile() {
+            if (typeof fireEnemyMissile === 'function') {
+                fireEnemyMissile(this);
+            }
+        }
+    }
+
+    const targets = [];
+    const uiContainer = document.getElementById('targets-ui-container');
+    let currentTargetIndex = 0; 
+    
+    const ENEMY_RADAR_CODES = ['台风', '阵风', 'F-15', 'F-18', '苏-27','JAS 39']; 
+
+    function createTarget(x, y, z) {
+        const mesh = buildSu30Model(false); 
+        mesh.position.set(x, y, z);
+        
+        const uiElement = document.createElement('div');
+        uiElement.className = 'target-box';
+        
+        const aspectIndicator = document.createElement('div');
+        aspectIndicator.className = 'target-aspect';
+        const aspectLine = document.createElement('div');
+        aspectLine.className = 'target-aspect-line';
+        aspectIndicator.appendChild(aspectLine);
+        uiElement.appendChild(aspectIndicator);
+
+        // 【新增】：创建右侧信息容器和文本节点
+        const infoContainer = document.createElement('div');
+        infoContainer.className = 'target-info-right';
+        
+        const distLabel = document.createElement('div');
+        distLabel.className = 'target-info-text';
+        distLabel.textContent = '0.0 km';
+        
+        const speedLabel = document.createElement('div');
+        speedLabel.className = 'target-info-text';
+        speedLabel.textContent = '0 m/s';
+        
+        infoContainer.appendChild(distLabel);
+        infoContainer.appendChild(speedLabel);
+        uiElement.appendChild(infoContainer);
+
+        uiContainer.appendChild(uiElement);
+
+        const radarCode = ENEMY_RADAR_CODES[Math.floor(Math.random() * ENEMY_RADAR_CODES.length)]; 
+        uiElement.setAttribute('data-name', radarCode);
+
+        const targetObj = new Enemy(mesh, uiElement, radarCode);
+        targetObj.aspectLine = aspectLine; 
+        targetObj.distLabel = distLabel;   // 【新增】：保存引用以便更新
+        targetObj.speedLabel = speedLabel; // 【新增】：保存引用以便更新
+        targets.push(targetObj);
+        return targetObj;
+    }
+
+    for(let i=0; i<6; i++){
+        createTarget(
+            (Math.random()-0.5) * 100000,   
+            2000 + Math.random() * 80000,   
+            -70000 - Math.random() * 20000  
+        );
+    }
+
+    // ==========================================
+    // 5. 拟真型 Digital RWR (雷达告警接收机) 系统
+    // ==========================================
+    class RWRSystem {
+        constructor() {
+            this.canvas = document.getElementById('rwr-display');
+            this.ctx = this.canvas.getContext('2d');
+            this.width = this.canvas.width;
+            this.height = this.canvas.height;
+            
+            // 【修改】：随尺寸增加 50%，调整中心点和各个圆环半径
+            this.cx = this.width / 2;
+            this.cy = this.height / 2 + 20; // 稍微向下偏移多一点留给顶部警告框
+            
+            this.outerRadius = 165; // 从 110 增加 50%
+            this.centerRadius = 18; // 从 12 增加 50%
+
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            this.audioCtx = new AudioContext();
+            this.lastBeepTime = 0;
+            this.missileBeepHigh = true; 
+        }
+
+        resumeAudio() {
+            if (this.audioCtx && this.audioCtx.state === 'suspended') {
+                this.audioCtx.resume();
+            }
+        }
+
+        playTone(freq, duration, type = 'square') {
+            if (this.audioCtx.state !== 'running') return;
+            const osc = this.audioCtx.createOscillator();
+            const gain = this.audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, this.audioCtx.currentTime); 
+            gain.gain.exponentialRampToValueAtTime(0.0001, this.audioCtx.currentTime + duration);
+            osc.connect(gain); gain.connect(this.audioCtx.destination);
+            osc.start(); osc.stop(this.audioCtx.currentTime + duration);
+        }
+
+        update(player, enemies, incomingMissiles = []) {
+            const ctx = this.ctx;
+            const now = Date.now();
+            const rwrColor = '#66FF66'; 
+            
+            let maxThreatLevel = 0; 
+            const threats = [];
+
+            enemies.forEach(enemy => {
+                if (!enemy.active) return;
+                
+                let level = enemy.radarState; 
+                
+                if (level > maxThreatLevel) maxThreatLevel = level;
+                threats.push({ obj: enemy, level: level, code: enemy.radarCode });
+            });
+
+            incomingMissiles.forEach(m => {
+                if (m.target === null) return; 
+
+                maxThreatLevel = 2;
+                const dist = player.mesh.position.distanceTo(m.mesh.position);
+                threats.push({ obj: m, level: 2, code: 'MSL', dist: dist });
+            });
+
+            ctx.clearRect(0, 0, this.width, this.height);
+
+            const cx = this.cx;
+            const cy = this.cy;
+            const outerRadius = this.outerRadius;
+            const centerRadius = this.centerRadius;
+
+            ctx.strokeStyle = rwrColor;
+            ctx.lineWidth = 2;
+
+            // 【修改】：给 RWR 圆环单独添加半透明背景，取代原有的方形背景
+            ctx.beginPath();
+            ctx.arc(cx, cy, outerRadius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0, 20, 0, 0.6)';
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.beginPath();
+            for(let i=0; i<12; i++) {
+                let angle = i * Math.PI / 6;
+                let x1 = cx + Math.sin(angle) * outerRadius;
+                let y1 = cy - Math.cos(angle) * outerRadius;
+                let x2 = cx + Math.sin(angle) * (outerRadius - 6);
+                let y2 = cy - Math.cos(angle) * (outerRadius - 6);
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+            }
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, centerRadius, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(cx - centerRadius + 4, cy); ctx.lineTo(cx + centerRadius - 4, cy);
+            ctx.moveTo(cx, cy - centerRadius + 4); ctx.lineTo(cx, cy + centerRadius - 4);
+            ctx.stroke();
+
+            threats.forEach(t => {
+                const targetPos = t.obj.mesh ? t.obj.mesh.position : t.obj.position;
+                const localPos = player.mesh.worldToLocal(targetPos.clone());
+                
+                const azimuth = Math.atan2(localPos.x, -localPos.z);
+                const canvasAngle = azimuth - Math.PI/2;
+
+                if (t.level === 2) {
+                    // 先计算出导弹文本将要显示的动态半径位置
+                    const distKm = (t.dist / 1000).toFixed(1); 
+                    let normalizedDist = Math.max(0, Math.min(t.dist / 20000, 1)); 
+                    let textRadius = centerRadius + 20 + normalizedDist * (outerRadius - centerRadius - 35);
+                    
+                    ctx.beginPath();
+                    ctx.setLineDash([]); 
+                    let startX = cx + Math.cos(canvasAngle) * (centerRadius + 4);
+                    let startY = cy + Math.sin(canvasAngle) * (centerRadius + 4);
+                    
+                    // 【核心修改】：将线条的终点半径设定在文本的内边缘 (减去约 15px 以免穿刺文字)
+                    let lineEndRadius = Math.max(centerRadius + 4, textRadius - 15);
+                    let endX = cx + Math.cos(canvasAngle) * lineEndRadius;
+                    let endY = cy + Math.sin(canvasAngle) * lineEndRadius;
+                    
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(endX, endY);
+                    ctx.strokeStyle = '#FF4444'; 
+                    ctx.lineWidth = 2.5;
+                    ctx.stroke();
+
+                    const textX = cx + Math.cos(canvasAngle) * textRadius;
+                    const textY = cy + Math.sin(canvasAngle) * textRadius;
+
+                    ctx.font = 'bold 10px Courier New';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    ctx.shadowColor = '#000';
+                    ctx.shadowBlur = 4;
+                    
+                    ctx.fillStyle = '#FF4444';
+                    ctx.fillText('MSL', textX, textY - 5);
+                    ctx.fillText(distKm + 'km', textX, textY + 5);
+
+                    ctx.shadowBlur = 0;
+
+                } else if (t.level === 1) {
+                    ctx.beginPath();
+                    ctx.setLineDash([6, 4]); 
+                    let startX = cx + Math.cos(canvasAngle) * (centerRadius + 4);
+                    let startY = cy + Math.sin(canvasAngle) * (centerRadius + 4);
+                    let endX = cx + Math.cos(canvasAngle) * (outerRadius - 4);
+                    let endY = cy + Math.sin(canvasAngle) * (outerRadius - 4);
+                    ctx.moveTo(startX, startY);
+                    ctx.lineTo(endX, endY);
+                    ctx.strokeStyle = rwrColor;
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    ctx.setLineDash([]); 
+                }
+
+                if (t.code && t.level !== 2) {
+                    ctx.font = 'bold 12px "Microsoft YaHei", "PingFang SC", sans-serif';
+                    ctx.fillStyle = t.level > 0 ? '#FFF' : rwrColor; 
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    const textRadius = outerRadius + 16;
+                    const textX = cx + Math.sin(azimuth) * textRadius; 
+                    const textY = cy - Math.cos(azimuth) * textRadius;
+                    
+                    ctx.shadowColor = '#000';
+                    ctx.shadowBlur = 4;
+                    
+                    ctx.fillStyle = t.level > 0 ? '#FFF' : rwrColor; 
+                    ctx.fillText(t.code, textX, textY);
+
+                    ctx.shadowBlur = 0;
+                }
+            });
+
+            if (maxThreatLevel > 0) {
+                const blink = (now % 600) < 300;
+                let statusText = maxThreatLevel === 2 ? "敌导弹" : "敌跟踪";
+                let boxColor = maxThreatLevel === 2 ? "#FF4444" : rwrColor;
+
+                ctx.font = 'bold 18px "Microsoft YaHei", "PingFang SC", sans-serif'; 
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+
+                if (blink) {
+                    const textWidth = ctx.measureText(statusText).width;
+                    const boxWidth = textWidth + 16;
+                    const boxHeight = 28;
+                    const boxX = cx - boxWidth/2;
+                    const boxY = 10; 
+
+                    // 【修改】：为顶部的警告文本框也添加半透明背景色
+                    ctx.fillStyle = 'rgba(0, 20, 0, 0.6)';
+                    ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+
+                    ctx.strokeStyle = boxColor;
+                    ctx.lineWidth = 2.5;
+                    ctx.strokeRect(boxX, boxY, boxWidth, boxHeight);
+                    
+                    ctx.fillStyle = boxColor;
+                    ctx.fillText(statusText, cx, boxY + boxHeight/2 + 1); 
+                }
+            }
+
+            if (maxThreatLevel === 2) {
+                if (now - this.lastBeepTime > 150) { 
+                    const freq = this.missileBeepHigh ? 1600 : 1200;
+                    this.playTone(freq, 0.15, 'sawtooth'); 
+                    this.lastBeepTime = now;
+                    this.missileBeepHigh = !this.missileBeepHigh; 
+                }
+            } else if (maxThreatLevel === 1) {
+                if (now - this.lastBeepTime > 300) { 
+                    this.playTone(800, 0.1, 'square');
+                    this.lastBeepTime = now;
+                }
+            } else if (maxThreatLevel === 0 && threats.length > 0) {
+                if (now - this.lastBeepTime > 2000) {
+                    this.playTone(400, 0.1, 'sine');
+                    this.lastBeepTime = now;
+                }
+            }
+        }
+    }
+
+    rwrSystem = new RWRSystem();
+
+    // ==========================================
+    // 6. 火控系统 (FCS) 与导弹操作绑定
+    // ==========================================
+    const FCS_STATES = { OFF: 'OFF', WARMUP: 'WARMUP', LOCKING: 'LOCKING', LOCKED: 'LOCKED' };
+    let fcsState = FCS_STATES.OFF;
+    let lockTimer = 0;
+    const LOCK_REQUIRED_TIME = 0.5; 
+    const OUTER_RETICLE_RADIUS = 400; 
+
+    const domReticleOuter = document.getElementById('reticle-outer');
+    const domReticleInner = document.getElementById('reticle-inner');
+    const domLockProgress = document.getElementById('lock-progress-bar');
+    const domMouseCursor = document.getElementById('mouse-cursor');
+    const domPlaneCrosshair = document.getElementById('plane-crosshair');
+    const domMissilesUIContainer = document.getElementById('missiles-ui-container'); 
+
+    window.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    window.addEventListener('mousedown', (e) => {
+        if (!gameStarted || isPaused) return; // 【修改】：未开始时禁用开火和预热
+        
+        if (typeof rwrSystem !== 'undefined' && rwrSystem) {
+            rwrSystem.resumeAudio();
+        }
+        
+        if (e.button === 2) { 
+            fcsState = fcsState === FCS_STATES.OFF ? FCS_STATES.WARMUP : FCS_STATES.OFF;
+            lockTimer = 0; updateReticleUI();
+        } else if (e.button === 0) { 
+            if (fcsState === FCS_STATES.LOCKED) fireMissile();
+        }
+    });
+
+    window.addEventListener('wheel', (e) => {
+        if (!gameStarted || isPaused) return; // 【修改】：未开始时禁用目标切换
+        if (targets.length > 0) {
+            if (e.deltaY > 0) currentTargetIndex = (currentTargetIndex + 1) % targets.length;
+            else currentTargetIndex = (currentTargetIndex - 1 + targets.length) % targets.length;
+            if (fcsState === FCS_STATES.LOCKING || fcsState === FCS_STATES.LOCKED) {
+                fcsState = FCS_STATES.WARMUP; lockTimer = 0; updateReticleUI();
+            }
+        }
+    });
+
+    function updateReticleUI() {
+        domReticleOuter.className = 'reticle'; domReticleInner.className = 'reticle';
+        domLockProgress.style.width = '0%';
+        switch(fcsState) {
+            case FCS_STATES.OFF:
+                domReticleInner.style.opacity = 0; domReticleOuter.style.opacity = 0; break;
+            case FCS_STATES.WARMUP:
+                domReticleInner.style.opacity = 1; domReticleOuter.style.opacity = 1; break;
+            case FCS_STATES.LOCKING:
+                domReticleInner.classList.add('locking'); domReticleOuter.classList.add('locking'); break;
+            case FCS_STATES.LOCKED:
+                domReticleInner.classList.add('locked'); domReticleOuter.classList.add('locked');
+                domLockProgress.style.width = '100%'; domLockProgress.style.background = 'red'; break;
+        }
+    }
+
+    const missiles = [];
+    let fireLeftWing = true; 
+
+    const enemyMissiles = [];
+    function fireEnemyMissile(enemyObj) {
+        const missileMesh = new THREE.Group();
+        
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 20, 8).rotateX(Math.PI/2), new THREE.MeshLambertMaterial({color:0x333333}));
+        const nose = new THREE.Mesh(new THREE.ConeGeometry(1.5, 5, 8).rotateX(-Math.PI/2), new THREE.MeshLambertMaterial({color:0xff0000}));
+        nose.position.z = -12.5;
+        const flare = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 4), new THREE.MeshBasicMaterial({color:0xff0000}));
+        flare.position.z = 11;
+
+        missileMesh.add(body); missileMesh.add(nose); missileMesh.add(flare);
+        
+        const offset = new THREE.Vector3(0, -5, -10).applyQuaternion(enemyObj.mesh.quaternion);
+        missileMesh.position.copy(enemyObj.mesh.position).add(offset);
+        missileMesh.quaternion.copy(enemyObj.mesh.quaternion); 
+        scene.add(missileMesh);
+        
+        // 【修改】：使用结构化的 DOM 容器装载框和文本，以实现严格的几何居中
+        const uiElement = document.createElement('div');
+        uiElement.className = 'missile-indicator-container';
+        
+        const boxElement = document.createElement('div');
+        boxElement.className = 'missile-box';
+        
+        const topLabel = document.createElement('div');
+        topLabel.className = 'missile-label-top';
+        topLabel.textContent = 'MSL';
+        
+        const bottomLabel = document.createElement('div');
+        bottomLabel.className = 'missile-label-bottom';
+        bottomLabel.textContent = '0.00km';
+        
+        uiElement.appendChild(boxElement);
+        uiElement.appendChild(topLabel);
+        uiElement.appendChild(bottomLabel);
+        domMissilesUIContainer.appendChild(uiElement);
+
+        enemyMissiles.push({ 
+            mesh: missileMesh, 
+            target: player.mesh, 
+            speed: 2200,
+            decoyTimer: 0,           
+            checkInterval: 1.0,
+            uiElement: uiElement, // 保存根容器 UI 引用
+            bottomLabel: bottomLabel // 保存距离文本元素的引用，方便更新
+        });
+    }
+
+    function fireMissile() {
+        const hud = document.getElementById('hud');
+        hud.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+        setTimeout(() => { hud.style.backgroundColor = 'transparent'; }, 50);
+
+        const targetObj = targets[currentTargetIndex];
+        const missileMesh = new THREE.Group();
+        
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 20, 8).rotateX(Math.PI/2), new THREE.MeshLambertMaterial({color:0xffffff}));
+        const nose = new THREE.Mesh(new THREE.ConeGeometry(1.5, 5, 8).rotateX(-Math.PI/2), new THREE.MeshLambertMaterial({color:0xff0000}));
+        nose.position.z = -12.5;
+        const flare = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 4), new THREE.MeshBasicMaterial({color:0xffaa00}));
+        flare.position.z = 11;
+
+        missileMesh.add(body); missileMesh.add(nose); missileMesh.add(flare);
+        
+        const wingOffset = fireLeftWing ? -15 : 15; fireLeftWing = !fireLeftWing; 
+        const offset = new THREE.Vector3(wingOffset, -5, -10).applyQuaternion(player.mesh.quaternion);
+        
+        missileMesh.position.copy(player.mesh.position).add(offset);
+        missileMesh.quaternion.copy(player.mesh.quaternion); 
+        scene.add(missileMesh);
+        
+        missiles.push({ mesh: missileMesh, targetObj: targetObj, speed: 1800 + player.speed });
+
+        fcsState = FCS_STATES.WARMUP; lockTimer = 0; updateReticleUI();
+    }
+
+
+    // ==========================================
+    // 7. BVR 战术雷达
+    // ==========================================
+    const raycaster = new THREE.Raycaster();
+    let currentCamLook = new THREE.Vector3(); 
+
+    const radarCanvas = document.getElementById('radar-display');
+    const radarCtx = radarCanvas.getContext('2d');
+    const RADAR_MAX_RANGE = 100000;         
+    const RADAR_MAX_AZIMUTH = Math.PI / 3; 
+
+    function updateRadarDisplay() {
+        radarCtx.clearRect(0, 0, 300, 300);
+        radarCtx.strokeStyle = 'rgba(0, 255, 0, 0.3)'; radarCtx.lineWidth = 1;
+        radarCtx.beginPath();
+        radarCtx.moveTo(0, 30); radarCtx.lineTo(300, 30);   
+        radarCtx.moveTo(0, 120); radarCtx.lineTo(300, 120); 
+        radarCtx.moveTo(0, 210); radarCtx.lineTo(300, 210); 
+        radarCtx.stroke();
+        
+        radarCtx.fillStyle = 'rgba(0, 255, 0, 0.5)'; radarCtx.font = '12px Courier New';
+        radarCtx.fillText('90km', 5, 42); radarCtx.fillText('60km', 5, 132); radarCtx.fillText('30km', 5, 222);
+        
+        radarCtx.beginPath();
+        radarCtx.moveTo(150, 0); radarCtx.lineTo(150, 300); 
+        radarCtx.moveTo(75, 0);  radarCtx.lineTo(75, 300);  
+        radarCtx.moveTo(225, 0); radarCtx.lineTo(225, 300); 
+        radarCtx.stroke();
+
+        targets.forEach((tgt, idx) => {
+            if (!tgt.active) return;
+            const localPos = player.mesh.worldToLocal(tgt.mesh.position.clone());
+            if (localPos.z > 0) return; 
+            const distance = -localPos.z; 
+            if (distance > RADAR_MAX_RANGE) return; 
+            const azimuth = Math.atan2(localPos.x, distance);
+            if (Math.abs(azimuth) > RADAR_MAX_AZIMUTH) return; 
+            const cx = 150 + (azimuth / RADAR_MAX_AZIMUTH) * 150;
+            const cy = 300 - (distance / RADAR_MAX_RANGE) * 300;
+            
+            radarCtx.fillStyle = '#0f0';
+            radarCtx.beginPath(); radarCtx.arc(cx, cy, 4, 0, Math.PI * 2); radarCtx.fill();
+            
+            if (idx === currentTargetIndex) {
+                radarCtx.strokeStyle = '#0f0'; radarCtx.lineWidth = 2;
+                radarCtx.beginPath();
+                radarCtx.moveTo(cx - 8, cy - 6); radarCtx.lineTo(cx - 8, cy + 6);
+                radarCtx.moveTo(cx + 8, cy - 6); radarCtx.lineTo(cx + 8, cy + 6);
+                radarCtx.stroke();
+            }
+        });
+
+        missiles.forEach((m) => {
+            if (!m.targetObj || !m.targetObj.active) return;
+            const missileLocal = player.mesh.worldToLocal(m.mesh.position.clone());
+            const targetLocal = player.mesh.worldToLocal(m.targetObj.mesh.position.clone());
+
+            const mDist = -missileLocal.z;
+            const mCx = 150 + (Math.atan2(missileLocal.x, Math.abs(mDist)) / RADAR_MAX_AZIMUTH) * 150;
+            const mCy = 300 - (mDist / RADAR_MAX_RANGE) * 300;
+
+            const tDist = -targetLocal.z;
+            const tCx = 150 + (Math.atan2(targetLocal.x, Math.abs(tDist)) / RADAR_MAX_AZIMUTH) * 150;
+            const tCy = 300 - (tDist / RADAR_MAX_RANGE) * 300;
+
+            const physicalDist = m.mesh.position.distanceTo(m.targetObj.mesh.position);
+
+            radarCtx.beginPath(); radarCtx.moveTo(mCx, mCy); radarCtx.lineTo(tCx, tCy);
+            radarCtx.lineWidth = 1.5; radarCtx.strokeStyle = 'rgba(255, 120, 0, 0.8)'; 
+            if (physicalDist > 30000) radarCtx.setLineDash([4, 4]); else radarCtx.setLineDash([]); 
+            radarCtx.stroke(); radarCtx.setLineDash([]); 
+
+            radarCtx.fillStyle = '#ff7800'; 
+            radarCtx.beginPath(); radarCtx.arc(mCx, mCy, 2.5, 0, Math.PI * 2); radarCtx.fill();
+        });
+    }
+
+    // ==========================================
+    // 8. 主循环架构
+    // ==========================================
+    
+    let currentFreeLookX = 0;
+    let currentFreeLookY = 0;
+    let freeLookWeight = 0; 
+
+    function animate() {
+        requestAnimationFrame(animate);
+        const dt = Math.min(clock.getDelta(), 0.1); 
+
+        if (!isPaused) {
+            
+            if(keys.w) player.throttle += dt * 0.5;
+            if(keys.s) player.throttle -= dt * 0.5;
+            player.throttle = Math.max(0, Math.min(1, player.throttle));
+            
+            // 【修改：THR 影响加速度，引入物理推力与阻力模型】
+            // 引擎推力产生的向前加速度（推满油门可提供 150m/s² 的推力）
+            const engineThrustAccel = player.throttle * 150.0; 
+            // 空气阻力减速度（遵循速度平方成正比的真实流体力学规律，极速时阻力抵消推力）
+            const dragDecel = Math.pow(player.speed / player.maxSpeed, 2) * 150.0;
+            
+            // 将加速度积分到速度中，赋予飞机真实的惯性手感
+            player.speed += (engineThrustAccel - dragDecel) * dt;
+            // 限制最低速度（失速底线）
+            player.speed = Math.max(player.minSpeed, player.speed);
+            
+            let targetFreeLookX = 0;
+            let targetFreeLookY = 0;
+
+            if (keys.c) {
+                targetFreeLookX = -mouseNDC.x * Math.PI * 0.9; 
+                targetFreeLookY = mouseNDC.y * (Math.PI / 2.2); 
+                freeLookWeight += dt * 10.0; 
+            } else {
+                freeLookWeight -= dt * 10.0; 
+            }
+            freeLookWeight = THREE.MathUtils.clamp(freeLookWeight, 0, 1);
+
+            currentFreeLookX += (targetFreeLookX - currentFreeLookX) * dt * 15.0;
+            currentFreeLookY += (targetFreeLookY - currentFreeLookY) * dt * 15.0;
+
+            const isCameraResetting = Math.abs(currentFreeLookX) > 0.05 || Math.abs(currentFreeLookY) > 0.05 || freeLookWeight > 0.05;
+            
+            const targetWaypoint = new THREE.Vector3();
+            
+            if (keys.c || isCameraResetting) {
+                const planeForward = new THREE.Vector3(0,0,-1).applyQuaternion(player.mesh.quaternion);
+                targetWaypoint.copy(player.mesh.position).add(planeForward.multiplyScalar(50000));
+            } else {
+                raycaster.setFromCamera(mouseNDC, camera);
+                raycaster.ray.at(50000, targetWaypoint); 
+            }
+            
+            const localTarget = player.mesh.worldToLocal(targetWaypoint.clone()).normalize();
+            const pitchError = localTarget.y; 
+            const yawError = -localTarget.x;   
+
+            let targetBank = yawError * 3.8; 
+            targetBank = THREE.MathUtils.clamp(targetBank, -Math.PI/2.1, Math.PI/2.1); 
+
+            if (keys.a) targetBank = Math.PI / 1.5;  
+            if (keys.d) targetBank = -Math.PI / 1.5; 
+
+            const localRight = new THREE.Vector3(1, 0, 0).applyQuaternion(player.mesh.quaternion);
+            const currentBank = Math.asin(THREE.MathUtils.clamp(localRight.y, -1, 1));
+            const bankError = targetBank - currentBank;
+
+            const pitchTorque = (pitchError * 18.0) + (Math.abs(currentBank) * 1.5) - (player.angularVelocity.x * 4.5);
+            const yawTorque = (yawError * 4.0) - (player.angularVelocity.y * 5.0);
+            const rollTorque = (bankError * 15.0) - (player.angularVelocity.z * 3.0);
+
+            player.angularVelocity.x += pitchTorque * dt;
+            player.angularVelocity.y += yawTorque * dt;
+            player.angularVelocity.z += rollTorque * dt;
+
+            const aeroDamping = 1.0 + (player.speed / player.maxSpeed) * 1.5;
+            player.angularVelocity.multiplyScalar(Math.max(0, 1.0 - aeroDamping * dt));
+
+            const maxPitchOmega = ((maxGForce - 1.0) * 9.8) / Math.max(player.speed, 1.0);
+            player.angularVelocity.x = THREE.MathUtils.clamp(player.angularVelocity.x, -maxPitchOmega, maxPitchOmega);
+
+            player.gForce = 1.0 + Math.abs(player.angularVelocity.x * player.speed) / 9.8;
+
+            if (player.gForce > 4.5 || (Math.abs(player.angularVelocity.z) > 1.0)) {
+                // 【修改】：水滴表面绝对光滑且无机翼，不会在空气中产生涡流和翼尖拉烟
+                if (!currentPlayerVisual || currentPlayerVisual.userData.modelType !== 'droplet') {
+                    const leftWingtip = player.mesh.localToWorld(new THREE.Vector3(-8, 0, 4));
+                    const rightWingtip = player.mesh.localToWorld(new THREE.Vector3(8, 0, 4));
+                    spawnContrail(leftWingtip); 
+                    spawnContrail(rightWingtip);
+                }
+            }
+
+            const w = player.angularVelocity;
+            const q = player.mesh.quaternion;
+            const qSpin = new THREE.Quaternion(w.x * dt * 0.5, w.y * dt * 0.5, w.z * dt * 0.5, 0);
+            const qDelta = q.clone().multiply(qSpin); 
+            
+            q.x += qDelta.x; q.y += qDelta.y; q.z += qDelta.z; q.w += qDelta.w;
+            q.normalize(); 
+
+            player.mesh.translateZ(-player.speed * dt);
+
+            if (currentPlayerVisual && currentPlayerVisual.userData.propeller) {
+                const propSpeed = (player.speed / player.maxSpeed) * 30.0; 
+                currentPlayerVisual.userData.propeller.rotation.z += propSpeed * dt;
+            }
+            
+            // 【新增】：动态更新水滴的等离子光束
+            if (currentPlayerVisual && currentPlayerVisual.userData.plasmaBeam) {
+                const beam = currentPlayerVisual.userData.plasmaBeam;
+                
+                // 光束长度和粗细根据油门动态插值变化
+                const targetScale = Math.max(0.1, player.throttle * 1.5);
+                beam.scale.z += (targetScale - beam.scale.z) * dt * 10;
+                
+                // 加入高频闪烁效果
+                beam.children.forEach((child, index) => {
+                    const baseOpacity = index === 0 ? 0.9 : (index === 1 ? 0.6 : 0.3);
+                    child.material.opacity = baseOpacity * (0.8 + Math.random() * 0.4) * player.throttle;
+                });
+            }
+
+            if (flareSystem) flareSystem.update(dt);
+
+            const lagVector = player.angularVelocity.clone().multiplyScalar(3.0); 
+
+            const freeLookEuler = new THREE.Euler(currentFreeLookY, currentFreeLookX, 0, 'YXZ');
+            const freeLookQuat = new THREE.Quaternion().setFromEuler(freeLookEuler);
+
+            const localCamOffset = new THREE.Vector3(
+                lagVector.z * -4.0, 
+                20 * (1.0 - freeLookWeight) + lagVector.x * -3.0, 
+                70
+            );
+
+            localCamOffset.applyQuaternion(freeLookQuat);
+            localCamOffset.applyQuaternion(player.mesh.quaternion);
+
+            const idealCamPos = player.mesh.position.clone().add(localCamOffset);
+            camera.position.lerp(idealCamPos, dt * 7.0);
+            
+            const localLookDir = new THREE.Vector3(0, 0, -1).applyQuaternion(freeLookQuat);
+            const worldLookDir = localLookDir.applyQuaternion(player.mesh.quaternion);
+            const idealCamLook = player.mesh.position.clone().add(worldLookDir.multiplyScalar(300));
+            
+            if(currentCamLook.length() === 0) currentCamLook.copy(idealCamLook); 
+            currentCamLook.lerp(idealCamLook, dt * 10.0);
+            
+            const localUpDir = new THREE.Vector3(0, 1, 0).applyQuaternion(freeLookQuat);
+            const worldUpDir = localUpDir.applyQuaternion(player.mesh.quaternion);
+            
+            const upLerp = camera.up.clone().lerp(new THREE.Vector3(0, 1, 0).lerp(worldUpDir, 0.6), dt * 4.0);
+            camera.up.copy(upLerp);
+            camera.lookAt(currentCamLook);
+
+            const targetFOV = 60 + (player.speed / player.maxSpeed) * 12;
+            camera.fov += (targetFOV - camera.fov) * dt * 3.0;
+            camera.updateProjectionMatrix();
+
+            gridHelper.position.x = Math.floor(player.mesh.position.x / 500) * 500;
+            gridHelper.position.z = Math.floor(player.mesh.position.z / 500) * 500;
+
+            document.getElementById('ui-thr').textContent = Math.round(player.throttle * 100);
+            document.getElementById('ui-spd').textContent = Math.round(player.speed);
+            document.getElementById('ui-alt').textContent = Math.round(player.mesh.position.y);
+            document.getElementById('ui-gforce').textContent = player.gForce.toFixed(1);
+            
+            if (flareSystem) {
+                const flareTextUI = document.getElementById('ui-flare-text');
+                const chaffTextUI = document.getElementById('ui-chaff-text');
+                
+                const statusStr = flareSystem.isDispensing ? " 循环连射 " : " ";
+                flareTextUI.textContent = `热焰弹${statusStr}${flareSystem.flareAmmo}`;
+                chaffTextUI.textContent = `干扰箔${statusStr}${flareSystem.chaffAmmo}`;
+                
+                flareTextUI.style.color = flareSystem.isDispensing ? "#ffaa00" : "#ddd";
+                chaffTextUI.style.color = flareSystem.isDispensing ? "#ffaa00" : "#ddd";
+            }
+
+            domMouseCursor.style.left = `${mouseScreen.x}px`;
+            domMouseCursor.style.top = `${mouseScreen.y}px`;
+            const mouseRoll = (mouseScreen.x - window.innerWidth/2) / window.innerWidth * 30;
+            
+            if (keys.c) {
+                domMouseCursor.style.borderColor = 'rgba(0, 255, 255, 0.9)'; 
+                domMouseCursor.style.borderWidth = '3px';
+                domMouseCursor.style.transform = `translate(-50%, -50%) rotate(${mouseRoll}deg) scale(1.5)`;
+            } else {
+                domMouseCursor.style.borderColor = 'rgba(255, 255, 255, 0.8)';
+                domMouseCursor.style.borderWidth = '2px';
+                domMouseCursor.style.transform = `translate(-50%, -50%) rotate(${mouseRoll}deg) scale(1.0)`;
+            }
+
+            const nosePoint = player.mesh.position.clone().add(new THREE.Vector3(0,0,-1000).applyQuaternion(player.mesh.quaternion));
+            nosePoint.project(camera);
+            if (nosePoint.z < 1) {
+                domPlaneCrosshair.style.display = 'block';
+                domPlaneCrosshair.style.left = `${(nosePoint.x * 0.5 + 0.5) * window.innerWidth}px`;
+                domPlaneCrosshair.style.top = `${-(nosePoint.y * 0.5 - 0.5) * window.innerHeight}px`;
+                domPlaneCrosshair.style.transform = `translate(-50%, -50%) rotate(${currentBank * -180/Math.PI}deg)`;
+            } else { domPlaneCrosshair.style.display = 'none'; }
+
+            let isTargetVisible = false;
+            let tScrX = 0, tScrY = 0;
+
+            targets.forEach((tgt, idx) => {
+                if(!tgt.active) return;
+
+                tgt.update(dt, player.mesh.position);
+
+                // 【修改】：移除强制让敌机始终死死盯着玩家看（slerp(q)）的代码。
+                // 敌机的朝向现在完全由其内部的巡逻逻辑（tgt.update）接管。
+                // const dirToP = new THREE.Vector3().subVectors(player.mesh.position, tgt.mesh.position).normalize();
+                // const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,-1), dirToP);
+                // tgt.mesh.quaternion.slerp(q, dt * 0.4); 
+                
+                tgt.mesh.translateZ(-tgt.speed * dt); 
+
+                const pos = tgt.mesh.position.clone();
+                // 【新增】：在投影前计算真实物理距离
+                const physicalDist = player.mesh.position.distanceTo(pos);
+                
+                pos.project(camera);
+                if (pos.z > 1) {
+                    tgt.uiElement.style.display = 'none';
+                } else {
+                    tgt.uiElement.style.display = 'block';
+                    const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+                    const y = -(pos.y * 0.5 - 0.5) * window.innerHeight;
+                    tgt.uiElement.style.left = `${x}px`;
+                    tgt.uiElement.style.top = `${y}px`;
+
+                    const enemyForward = new THREE.Vector3(0, 0, -1).applyQuaternion(tgt.mesh.quaternion);
+                    enemyForward.transformDirection(camera.matrixWorldInverse);
+                    
+                    const angle = Math.atan2(enemyForward.z, enemyForward.x);
+                    
+                    if (tgt.aspectLine) {
+                        tgt.aspectLine.style.transform = `rotate(${angle}rad)`;
+                    }
+
+                    // 【新增】：更新右侧的距离和速度文本
+                    if (tgt.distLabel) {
+                        tgt.distLabel.textContent = `${(physicalDist / 1000).toFixed(1)} km`;
+                    }
+                    if (tgt.speedLabel) {
+                        // 假设敌机当前速度等于其 base speed
+                        tgt.speedLabel.textContent = `${Math.round(tgt.speed)} m/s`;
+                    }
+
+                    if (idx === currentTargetIndex) {
+                        tgt.uiElement.classList.add('selected');
+                        tScrX = x; tScrY = y; isTargetVisible = true;
+                    } else {
+                        tgt.uiElement.classList.remove('selected');
+                    }
+                }
+            });
+
+            updateRadarDisplay(); 
+            rwrSystem.update(player, targets, enemyMissiles); 
+
+            if (fcsState !== FCS_STATES.OFF) {
+                domReticleOuter.style.left = `${mouseScreen.x}px`; domReticleOuter.style.top = `${mouseScreen.y}px`;
+                const distToAim = Math.hypot(tScrX - mouseScreen.x, tScrY - mouseScreen.y);
+                const canLock = isTargetVisible && (distToAim < OUTER_RETICLE_RADIUS);
+                if (fcsState === FCS_STATES.WARMUP || fcsState === FCS_STATES.LOCKING) {
+                    if (canLock) {
+                        if (fcsState === FCS_STATES.WARMUP) { fcsState = FCS_STATES.LOCKING; lockTimer = 0; updateReticleUI(); }
+                        lockTimer += dt;
+                        domLockProgress.style.width = `${(lockTimer / LOCK_REQUIRED_TIME) * 100}%`;
+                        if (lockTimer >= LOCK_REQUIRED_TIME) { fcsState = FCS_STATES.LOCKED; updateReticleUI(); }
+                    } else {
+                        if (fcsState === FCS_STATES.LOCKING) { fcsState = FCS_STATES.WARMUP; lockTimer = 0; updateReticleUI(); }
+                    }
+                } else if (fcsState === FCS_STATES.LOCKED) {
+                    if (!canLock) { fcsState = FCS_STATES.WARMUP; lockTimer = 0; updateReticleUI(); }
+                }
+                if (isTargetVisible && targets.length > 0) {
+                    domReticleInner.style.left = `${tScrX}px`; domReticleInner.style.top = `${tScrY}px`;
+                } else {
+                    domReticleInner.style.left = `${mouseScreen.x}px`; domReticleInner.style.top = `${mouseScreen.y}px`;
+                }
+            }
+
+            for (let i = missiles.length - 1; i >= 0; i--) {
+                const m = missiles[i];
+                const targetPos = m.targetObj && m.targetObj.active ? m.targetObj.mesh.position : null;
+                if (!targetPos) { scene.remove(m.mesh); missiles.splice(i, 1); continue; }
+                const dist = m.mesh.position.distanceTo(targetPos);
+                const moveStep = m.speed * dt;
+                
+                if (dist < (60 + moveStep)) { 
+                    spawnExplosion(targetPos);
+                    m.targetObj.active = false;
+                    scene.remove(m.targetObj.mesh); m.targetObj.uiElement.remove(); 
+                    scene.remove(m.mesh); missiles.splice(i, 1);
+                    const tIdx = targets.indexOf(m.targetObj);
+                    if (tIdx > -1) targets.splice(tIdx, 1);
+                    if (targets.length === 0 && fcsState !== FCS_STATES.OFF) { fcsState = FCS_STATES.WARMUP; updateReticleUI(); }
+
+                    showDestroyMessage();
+
+                    setTimeout(() => {
+                        const pDir = new THREE.Vector3(0,0,-1).applyQuaternion(player.mesh.quaternion);
+                        const spawnPos = player.mesh.position.clone().add(pDir.multiplyScalar(100000));
+                        spawnPos.x += (Math.random()-0.5) * 40000; spawnPos.y += (Math.random()-0.5) * 8000;
+                        createTarget(spawnPos.x, spawnPos.y, spawnPos.z);
+                    }, 3000);
+                } else {
+                    const dir = new THREE.Vector3().subVectors(targetPos, m.mesh.position).normalize();
+                    m.mesh.position.add(dir.multiplyScalar(moveStep));
+                    m.mesh.lookAt(targetPos);
+                    const tailPos = m.mesh.position.clone().add(new THREE.Vector3(0,0,11).applyQuaternion(m.mesh.quaternion));
+                    spawnSmoke(tailPos);
+                }
+            }
+
+            for (let i = enemyMissiles.length - 1; i >= 0; i--) {
+                const m = enemyMissiles[i];
+                const moveStep = m.speed * dt;
+
+                if (m.target !== null) {
+                    m.decoyTimer += dt;
+                    if (m.decoyTimer > m.checkInterval) {
+                        if (flareSystem && flareSystem.isDispensing) {
+                            if (Math.random() < 0.4) {
+                                m.target = null; 
+                                m.mesh.rotateX((Math.random() - 0.5) * 0.4);
+                                m.mesh.rotateY((Math.random() - 0.5) * 0.4);
+                                
+                                showEvadeMessage(); 
+                            }
+                        }
+                        m.decoyTimer = 0; 
+                    }
+                }
+
+                // 【新增】：更新敌方导弹的 HUD 投影位置和距离
+                const mPos = m.mesh.position.clone();
+                const mDist = player.mesh.position.distanceTo(mPos);
+                mPos.project(camera);
+                
+                // 如果在摄像机前方则显示UI，否则隐藏
+                if (mPos.z < 1) {
+                    m.uiElement.style.display = 'block';
+                    const x = (mPos.x * 0.5 + 0.5) * window.innerWidth;
+                    const y = -(mPos.y * 0.5 - 0.5) * window.innerHeight;
+                    m.uiElement.style.left = `${x}px`;
+                    m.uiElement.style.top = `${y}px`;
+                    
+                    // 更新距离文本 (千米，保留两位小数)
+                    m.bottomLabel.textContent = `${(mDist / 1000).toFixed(2)}km`;
+                } else {
+                    m.uiElement.style.display = 'none';
+                }
+
+                if (m.target === null) {
+                    m.mesh.translateZ(-moveStep);
+                    const tailPos = m.mesh.position.clone().add(new THREE.Vector3(0,0,11).applyQuaternion(m.mesh.quaternion));
+                    spawnSmoke(tailPos);
+                    
+                    m.lifeTime = (m.lifeTime || 0) + dt;
+                    if (m.lifeTime > 8) { 
+                        scene.remove(m.mesh); 
+                        m.uiElement.remove(); // 【新增】：销毁导弹时同时清理UI
+                        enemyMissiles.splice(i, 1);
+                    }
+                    continue; 
+                }
+
+                const dist = m.mesh.position.distanceTo(m.target.position);
+                
+                if (dist < (60 + moveStep)) { 
+                    spawnExplosion(m.target.position);
+                    scene.remove(m.mesh); 
+                    m.uiElement.remove(); // 【新增】：命中时清理UI
+                    enemyMissiles.splice(i, 1);
+                    const hud = document.getElementById('hud');
+                    hud.style.backgroundColor = 'rgba(255, 0, 0, 0.5)';
+                    setTimeout(() => { hud.style.backgroundColor = 'transparent'; }, 200);
+                } else {
+                    const dir = new THREE.Vector3().subVectors(m.target.position, m.mesh.position).normalize();
+                    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(m.mesh.quaternion);
+
+                    if (dist < 8000 && dir.dot(forward) < 0) {
+                        scene.remove(m.mesh); 
+                        m.uiElement.remove(); // 【新增】：错飞时清理UI
+                        enemyMissiles.splice(i, 1);
+                        showEvadeMessage(); 
+                        continue; 
+                    }
+
+                    const targetQuat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, -1), dir);
+                    const maxOmega = (missileMaxGForce * 9.8) / m.speed;
+                    const maxAngle = maxOmega * dt;
+
+                    m.mesh.quaternion.rotateTowards(targetQuat, maxAngle);
+                    m.mesh.translateZ(-moveStep);
+
+                    const tailPos = m.mesh.position.clone().add(new THREE.Vector3(0,0,11).applyQuaternion(m.mesh.quaternion));
+                    spawnSmoke(tailPos);
+                }
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                
+                if (p.type === 'flareSmoke') {
+                    p.life -= dt * 0.18; 
+                    p.mesh.position.add(p.velocity.clone().multiplyScalar(dt));
+                    p.velocity.multiplyScalar(Math.max(0, 1.0 - dt * 2.0)); 
+                } 
+                else if (p.type === 'smoke') {
+                    p.life -= dt * 0.12; 
+                }
+                else if (p.type === 'contrail') {
+                    p.life -= dt * 3.0;
+                }
+                else if (p.type === 'exp') {
+                    p.life -= dt * 2.0;
+                }
+
+                if (p.life <= 0) {
+                    scene.remove(p.mesh); p.mesh.material.dispose(); particles.splice(i, 1);
+                } else {
+                    if (p.type === 'flareSmoke') {
+                        const expansion = 1 + (1 - p.life) * 8; 
+                        p.mesh.scale.setScalar(expansion);
+                        p.mesh.rotation.x += dt * 0.2;
+                        p.mesh.rotation.y += dt * 0.3;
+                        p.mesh.material.opacity = p.life * 0.4;
+                    }
+                    else if(p.type === 'smoke'){
+                        const expansion = 1 + (1 - p.life) * 5; 
+                        p.mesh.scale.setScalar(expansion);
+                        p.mesh.rotation.x += dt * 1.5; 
+                        
+                        p.mesh.material.opacity = Math.min(p.life * 2.5, 1.0) * 0.85; 
+                    } else if(p.type === 'contrail') {
+                        p.mesh.scale.set(1 + (1 - p.life), 1 + (1 - p.life), 1);
+                        p.mesh.material.opacity = p.life * 0.3;
+                    } else if (p.type === 'exp') { 
+                        p.mesh.scale.setScalar(1 + (1 - p.life) * 3);
+                        p.mesh.material.opacity = p.life;
+                    }
+                }
+            }
+        } 
+
+        renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    updateReticleUI();
+    animate();
+
+    // ==========================================
+    // 【新增】：游戏预加载动画序列 (Preload Sequence)
+    // ==========================================
+    async function runPreloader() {
+        const tasks = [
+            { text: "建立物理飞控学核心 (Flight Dynamics)...", weight: 20 },
+            { text: "激活全向雷达告警接收机 (RWR)...", weight: 40 },
+            { text: "预装填空对空导弹与干扰弹阵列...", weight: 60 },
+            { text: "上传敌方战机 AI 节点模型...", weight: 80 },
+            { text: "编译 WebGL 战斗环境着色器...", weight: 100 }
+        ];
+
+        // 真实预加载：提前编译当前场景所有的 Shader，防止进入游戏后开火产生卡顿
+        renderer.compile(scene, camera);
+
+        for (let i = 0; i < tasks.length; i++) {
+            loadingText.textContent = tasks[i].text;
+            loadingBar.style.width = `${tasks[i].weight}%`;
+            // 模拟模块逐个上线的延迟感 (200ms ~ 500ms 不等)
+            await new Promise(r => setTimeout(r, 200 + Math.random() * 300)); 
+        }
+
+        loadingText.textContent = "所有作战系统准备就绪 (ALL SYSTEMS GO)";
+        loadingText.style.color = "#fff";
+        loadingText.style.fontWeight = "bold";
+        startBtn.style.display = "block";
+    }
+
+    // 触发预加载
+    runPreloader();
+
+</script>
+</body>
+</html>
