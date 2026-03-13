@@ -15,17 +15,25 @@
     </script>
     
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>超视距空战模拟器</title>
     <style>
-        body {
-            margin: 0;
+        html, body {
+            width: 100%;
+            height: 100%;
             overflow: hidden;
             background-color: #000;
+        }
+        body {
+            margin: 0;
+            position: fixed;
+            inset: 0;
             font-family: 'Courier New', Courier, monospace;
             user-select: none;
             -webkit-user-select: none;
-            cursor: none; 
+            cursor: none;
+            overscroll-behavior: none;
+            touch-action: none;
         }
         #canvas-container {
             position: absolute;
@@ -386,7 +394,241 @@
         }
         .pause-btn:hover { background: #0f0; color: #000; box-shadow: 0 0 15px #0f0; }
 
-        #mobile-controls { display: none; }
+
+
+        #pause-menu {
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 5, 0, 0.72);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(8px);
+        }
+
+        #mobile-controls {
+            position: fixed;
+            inset: 0;
+            z-index: 40;
+            pointer-events: none;
+            display: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: none;
+        }
+        .mobile-joystick-zone,
+        .mobile-actions,
+        .mobile-topbar {
+            pointer-events: none;
+        }
+        .mobile-joystick-zone > *,
+        .mobile-actions > *,
+        .mobile-topbar > * {
+            pointer-events: auto;
+        }
+        .mobile-joystick-zone {
+            position: absolute;
+            left: max(12px, env(safe-area-inset-left));
+            bottom: max(14px, calc(env(safe-area-inset-bottom) + 8px));
+            width: min(34vw, 180px);
+            height: min(34vw, 180px);
+        }
+        #mobile-joystick-base {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 2px solid rgba(0, 255, 0, 0.45);
+            background: radial-gradient(circle, rgba(0,255,0,0.12) 0%, rgba(0,0,0,0.12) 65%, rgba(0,0,0,0.35) 100%);
+            backdrop-filter: blur(4px);
+        }
+        #mobile-joystick-knob {
+            position: absolute;
+            width: 42%;
+            height: 42%;
+            left: 29%;
+            top: 29%;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.72);
+            background: rgba(255,255,255,0.12);
+            box-shadow: 0 0 14px rgba(255,255,255,0.1);
+            transition: transform 0.06s linear;
+        }
+        .mobile-actions {
+            position: absolute;
+            right: max(12px, env(safe-area-inset-right));
+            bottom: max(14px, calc(env(safe-area-inset-bottom) + 8px));
+            width: min(46vw, 250px);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .mobile-btn {
+            min-height: 54px;
+            border-radius: 14px;
+            border: 1px solid rgba(0,255,0,0.55);
+            background: rgba(0, 25, 0, 0.58);
+            color: #d7ffd7;
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            backdrop-filter: blur(6px);
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        .mobile-btn:active,
+        .mobile-btn.active {
+            background: rgba(0,255,0,0.2);
+            color: #fff;
+            box-shadow: 0 0 14px rgba(0,255,0,0.25);
+        }
+        .mobile-btn.wide {
+            grid-column: span 2;
+        }
+        .mobile-topbar {
+            position: absolute;
+            top: max(10px, env(safe-area-inset-top));
+            left: max(10px, env(safe-area-inset-left));
+            right: max(10px, env(safe-area-inset-right));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        .mobile-topbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            pointer-events: auto;
+        }
+        .mobile-chip {
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(0,255,0,0.45);
+            background: rgba(0, 20, 0, 0.58);
+            color: #d7ffd7;
+            font-size: 12px;
+            backdrop-filter: blur(6px);
+        }
+        .mobile-hint {
+            opacity: 0.8;
+        }
+        .mobile-hidden-desktop { display: none; }
+
+        @media (hover: none) and (pointer: coarse), (max-width: 900px) {
+            body {
+                cursor: default;
+            }
+            #mobile-controls {
+                display: block;
+            }
+            #mouse-cursor {
+                display: none;
+            }
+            #reticle-outer {
+                width: min(72vw, 420px);
+                height: min(72vw, 420px);
+            }
+            #reticle-inner {
+                width: 52px;
+                height: 52px;
+            }
+            #status-panel {
+                top: max(8px, env(safe-area-inset-top));
+                left: max(8px, env(safe-area-inset-left));
+                padding: 10px 12px;
+                max-width: min(54vw, 220px);
+                font-size: 12px;
+            }
+            #flight-instruments {
+                margin-top: 8px;
+                padding-top: 8px;
+                font-size: 12px;
+            }
+            #radar-display {
+                width: 170px;
+                height: 170px;
+                bottom: calc(env(safe-area-inset-bottom) + 150px);
+                right: max(8px, env(safe-area-inset-right));
+                transform: none;
+                border-width: 1px;
+            }
+            #rwr-display {
+                width: 220px;
+                height: 220px;
+                bottom: calc(env(safe-area-inset-bottom) + 132px);
+                left: max(0px, calc(env(safe-area-inset-left) - 18px));
+                transform: scale(0.5);
+                transform-origin: bottom left;
+            }
+            #evade-msg {
+                top: 20%;
+                font-size: 24px;
+                letter-spacing: 2px;
+            }
+            #destroy-msg {
+                top: 28%;
+                font-size: 28px;
+            }
+            .target-box,
+            .target-box.selected {
+                width: 34px;
+                height: 34px;
+            }
+            .target-box::after,
+            .target-info-text {
+                font-size: 10px;
+            }
+            .target-info-right {
+                left: 38px;
+                height: 34px;
+            }
+            .pause-content {
+                width: calc(100vw - 24px);
+                max-height: calc(100vh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+                padding: 20px;
+            }
+            .setting-row {
+                flex-wrap: wrap;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .setting-row label {
+                width: 100% !important;
+            }
+            .mobile-hidden-desktop { display: inline; }
+        }
+
+        @media (hover: none) and (pointer: coarse) and (orientation: portrait) {
+            #status-panel {
+                max-width: min(62vw, 240px);
+            }
+            #radar-display {
+                width: 148px;
+                height: 148px;
+                bottom: calc(env(safe-area-inset-bottom) + 184px);
+            }
+            #rwr-display {
+                transform: scale(0.42);
+                bottom: calc(env(safe-area-inset-bottom) + 165px);
+                left: max(-18px, calc(env(safe-area-inset-left) - 28px));
+            }
+            .mobile-actions {
+                width: min(52vw, 240px);
+                gap: 8px;
+            }
+            .mobile-btn {
+                min-height: 50px;
+                font-size: 12px;
+            }
+            .mobile-joystick-zone {
+                width: min(38vw, 170px);
+                height: min(38vw, 170px);
+            }
+        }
+
+
         @media (max-width: 1024px) {
             #radar-display {
                 transform-origin: bottom right;
@@ -465,28 +707,31 @@
             </div>
             <div class="setting-row">
                 <label style="color: #fff; width: 220px;">敌方导弹机动 (Missile G-Limit):</label>
-                <input type="range" id="start-missile-g-limit-slider" min="10" max="100" value="35" step="1">
-                <span id="start-missile-g-limit-value" style="color: #0f0; font-weight: bold; width: 50px;">35 G</span>
+                <input type="range" id="start-missile-g-limit-slider" min="10" max="100" value="100" step="1">
+                <span id="start-missile-g-limit-value" style="color: #0f0; font-weight: bold; width: 50px;">100 G</span>
             </div>
             <div class="setting-row">
                 <label style="color: #fff; width: 220px;">干扰弹备弹量 (Flare Ammo):</label>
-                <input type="range" id="start-flare-ammo-slider" min="10" max="200" value="50" step="10">
-                <span id="start-flare-ammo-value" style="color: #0f0; font-weight: bold; width: 50px;">50 发</span>
+                <input type="range" id="start-flare-ammo-slider" min="10" max="200" value="200" step="10">
+                <span id="start-flare-ammo-value" style="color: #0f0; font-weight: bold; width: 50px;">200 发</span>
             </div>
         </div>
 
-        <!-- 【新增】：将键位说明加入开始界面 -->
         <div class="pause-section" style="margin-bottom: 25px; text-align: left;">
-            <h2 style="text-align: center; border-bottom: 1px dashed #0f0; margin-bottom: 15px; padding-bottom: 5px;">键位操作 (Controls)</h2>
+            <h2 style="text-align: center; border-bottom: 1px dashed #0f0; margin-bottom: 15px; padding-bottom: 5px;">键位操作 <span class="mobile-hidden-desktop">/ 触控操作</span> (Controls)</h2>
             <p><span class="key-badge">鼠标移动</span>控制机头牵引方向</p>
             <p><span class="key-badge">W / S</span>增加/减少引擎推力</p>
             <p><span class="key-badge">A / D</span>滚转</p>
             <p><span class="key-badge">鼠标滚轮</span>切换雷达跟踪目标</p>
             <p><span class="key-badge">鼠标右键</span>开启/关闭导弹预热</p>
-            <p><span class="key-badge">鼠标左键</span>发射空空导弹 (需完成锁定)</p>
+            <p><span class="key-badge">鼠标左键</span>发射空空导弹</p>
             <p><span class="key-badge">3</span>开/关干扰弹循环连射</p>
             <p><span class="key-badge">C (长按)</span>进入自由视角观察四周</p>
             <p><span class="key-badge">ESC</span>暂停或继续游戏</p>
+            <p><span class="key-badge">左下摇杆</span>移动端拖动准星控制机头</p>
+            <p><span class="key-badge">右侧按钮</span>锁定 / 开火 / 切目标 / 加减速 / 干扰弹 / 滚转 / 自由视角</p>
+            <p><span class="key-badge">左下摇杆</span>移动端拖动准星控制机头</p>
+            <p><span class="key-badge">右侧按钮</span>锁定 / 开火 / 切目标 / 加减速 / 干扰弹 / 滚转 / 自由视角</p>
         </div>
 
         <div style="text-align: left; margin-bottom: 20px;">
@@ -512,7 +757,7 @@
                     <option value="biplane" selected>一战双翼机 (Biplane)</option>
                     <option value="fighter">苏-30SM (Su-30SM Flanker)</option>
                     <option value="paper">纸飞机 (Paper Plane)</option>
-                    <option value="droplet">三体水滴 (Teardrop)</option> <!-- 【新增水滴选项】 -->
+                    <option value="droplet">水滴 (Teardrop)</option> <!-- 【新增水滴选项】 -->
                 </select>
             </div>
             <div class="setting-row">
@@ -522,13 +767,13 @@
             </div>
             <div class="setting-row">
                 <label style="color: #fff; width: 220px;">敌方导弹机动 (Missile G-Limit):</label>
-                <input type="range" id="missile-g-limit-slider" min="10" max="100" value="35" step="1">
-                <span id="missile-g-limit-value" style="color: #0f0; font-weight: bold; width: 50px;">35 G</span>
+                <input type="range" id="missile-g-limit-slider" min="10" max="100" value="100" step="1">
+                <span id="missile-g-limit-value" style="color: #0f0; font-weight: bold; width: 50px;">100 G</span>
             </div>
             <div class="setting-row">
                 <label style="color: #fff; width: 220px;">干扰弹备弹量 (Flare Ammo):</label>
-                <input type="range" id="flare-ammo-slider" min="10" max="200" value="50" step="10">
-                <span id="flare-ammo-value" style="color: #0f0; font-weight: bold; width: 50px;">50 发</span>
+                <input type="range" id="flare-ammo-slider" min="10" max="200" value="200" step="10">
+                <span id="flare-ammo-value" style="color: #0f0; font-weight: bold; width: 50px;">200 发</span>
             </div>
         </div>
 
@@ -536,16 +781,41 @@
             <h2>键位操作 (Controls)</h2>
             <p><span class="key-badge">鼠标移动</span>控制机头牵引方向</p>
             <p><span class="key-badge">W / S</span>增加/减少引擎推力</p>
-            <p><span class="key-badge">A / D</span>强制干预滚转姿态 (侧翻)</p>
-            <p><span class="key-badge">鼠标滚轮</span>切换雷达高优跟踪目标</p>
+            <p><span class="key-badge">A / D</span滚转</p>
+            <p><span class="key-badge">鼠标滚轮</span>切换雷达跟踪目标</p>
             <p><span class="key-badge">鼠标右键</span>开启/关闭导弹火控预热</p>
-            <p><span class="key-badge">鼠标左键</span>发射空空导弹 (需完成锁定)</p>
-            <p><span class="key-badge">3</span>开关干扰弹循环连射</p>
+            <p><span class="key-badge">鼠标左键</span>发射空空导弹</p>
+            <p><span class="key-badge">3</span>开/关干扰弹循环连射</p>
             <p><span class="key-badge">C (长按)</span>进入自由视角观察四周</p>
             <p><span class="key-badge">ESC</span>暂停或继续游戏</p>
         </div>
 
         <button class="pause-btn" id="resume-btn">继续游戏 (RESUME)</button>
+    </div>
+</div>
+
+<div id="mobile-controls" aria-hidden="true">
+    <div class="mobile-topbar">
+        <div class="mobile-chip mobile-hint" id="mobile-mode-chip">移动端触控模式</div>
+        <div class="mobile-topbar-actions">
+            <button class="mobile-btn" id="mobile-fullscreen-btn" type="button">全屏</button>
+            <button class="mobile-btn" id="mobile-pause-btn" type="button">暂停</button>
+        </div>
+    </div>
+    <div class="mobile-joystick-zone" id="mobile-joystick-zone">
+        <div id="mobile-joystick-base"></div>
+        <div id="mobile-joystick-knob"></div>
+    </div>
+    <div class="mobile-actions">
+        <button class="mobile-btn" id="mobile-lock-btn" type="button">锁定</button>
+        <button class="mobile-btn" id="mobile-fire-btn" type="button">开火</button>
+        <button class="mobile-btn" id="mobile-target-btn" type="button">切目标</button>
+        <button class="mobile-btn" id="mobile-throttle-up-btn" type="button">加速</button>
+        <button class="mobile-btn" id="mobile-throttle-down-btn" type="button">减速</button>
+        <button class="mobile-btn" id="mobile-flare-btn" type="button">干扰弹</button>
+        <button class="mobile-btn" id="mobile-roll-left-btn" type="button">左滚转</button>
+        <button class="mobile-btn" id="mobile-roll-right-btn" type="button">右滚转</button>
+        <button class="mobile-btn wide" id="mobile-view-btn" type="button">自由视角</button>
     </div>
 </div>
 
@@ -559,8 +829,8 @@
     let isPaused = true;     // 【修改】：初始状态设为暂停，等待玩家点击开始
     
     let maxGForce = 20; 
-    let missileMaxGForce = 35; 
-    let maxFlareAmmo = 50; // 新增：全局干扰弹备弹量控制
+    let missileMaxGForce = 100; 
+    let maxFlareAmmo = 200; // 新增：全局干扰弹备弹量控制
     let rwrSystem = null; 
     let flareSystem = null; 
 
@@ -575,11 +845,14 @@
     const loadingBar = document.getElementById('loading-bar');
 
     // 【新增】：点击开始按钮的逻辑
-    startBtn.addEventListener('click', () => {
+    startBtn.addEventListener('click', async () => {
+        if (mobileState.isEnabled) await requestGameFullscreen();
         startMenu.style.display = 'none';
         gameStarted = true;
         isPaused = false;
-        document.body.style.cursor = 'none';
+        document.body.style.cursor = mobileState.isEnabled ? 'default' : 'none';
+        syncViewportHeight();
+        updateFullscreenUI();
         clock.getDelta(); // 重置时间差，防止开局瞬间计算极大 dt 导致瞬移
     });
 
@@ -636,7 +909,8 @@
             document.body.style.cursor = 'default'; 
         } else {
             pauseMenu.style.display = 'none';
-            document.body.style.cursor = 'none';    
+            document.body.style.cursor = mobileState.isEnabled ? 'default' : 'none';
+            if (mobileState.isEnabled) requestGameFullscreen();
             clock.getDelta(); 
         }
     }
@@ -644,46 +918,145 @@
     resumeBtn.addEventListener('click', togglePause);
 
     // ==========================================
-    // 1. 初始化 Three.js 场景与环境
+    // 1. 初始化 Three.js 场景与环境 (极致性能优化版)
     // ==========================================
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x6ca6cd); 
-    scene.fog = new THREE.FogExp2(0x6ca6cd, 0.000015); 
+    
+    // 1.1 背景与雾气
+    const horizonColor = new THREE.Color(0xaaccff);
+    scene.background = horizonColor; 
+    scene.fog = new THREE.FogExp2(horizonColor, 0.000015); 
 
-    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 150000); 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 10, 200000); 
+    const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" }); // 关闭抗锯齿提升性能
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     container.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.2); 
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7); 
     scene.add(ambientLight);
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.5); 
-    dirLight.position.set(1000, 2000, 500);
+    
+    // 1.2 太阳与光照
+    const dirLight = new THREE.DirectionalLight(0xffeedd, 1.2); 
+    dirLight.position.set(20000, 30000, -50000); 
     scene.add(dirLight);
 
-    // ==========================================
-    // 【新增】：程序化生成全局环境反射贴图 (Environment Map)
-    // 解决纯金属材质没有环境贴图就会变成死黑/死白的世界级难题
-    // ==========================================
+    const sunMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(2000, 16, 16), 
+        new THREE.MeshBasicMaterial({ color: 0xffffff, fog: false })
+    );
+    sunMesh.position.copy(dirLight.position);
+    scene.add(sunMesh);
+
+    // 1.3 天空穹顶 (Skydome)
+    const skyCanvas = document.createElement('canvas');
+    skyCanvas.width = 2; skyCanvas.height = 512;
+    const skyCtx = skyCanvas.getContext('2d');
+    const skyGrad = skyCtx.createLinearGradient(0, 0, 0, 512);
+    skyGrad.addColorStop(0, '#0f4c81');   
+    skyGrad.addColorStop(0.6, '#6ca6cd'); 
+    skyGrad.addColorStop(1, '#aaccff');   
+    skyCtx.fillStyle = skyGrad;
+    skyCtx.fillRect(0, 0, 2, 512);
+    
+    const skydome = new THREE.Mesh(
+        new THREE.SphereGeometry(150000, 16, 16), 
+        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(skyCanvas), side: THREE.BackSide, fog: false })
+    );
+    scene.add(skydome);
+
+    // 1.4 极简 Low-poly 地形 (大幅减少顶点数：从 14400 降至 2500)
+    const terrainGeo = new THREE.PlaneGeometry(200000, 200000, 50, 50);
+    terrainGeo.rotateX(-Math.PI / 2);
+    const posAttr = terrainGeo.attributes.position;
+    for (let i = 0; i < posAttr.count; i++) {
+        let x = posAttr.getX(i);
+        let z = posAttr.getZ(i);
+        let y = Math.sin(x * 0.00005) * Math.cos(z * 0.00005) * 4000; 
+        y += Math.sin(x * 0.0002 + z * 0.0001) * 1000;
+        posAttr.setY(i, y);
+    }
+    terrainGeo.computeVertexNormals();
+    
+    const terrainMesh = new THREE.Mesh(terrainGeo, new THREE.MeshStandardMaterial({
+        color: 0x3d5c3a, roughness: 1.0, metalness: 0.0, flatShading: true
+    }));
+    terrainMesh.position.y = -2000; 
+    scene.add(terrainMesh);
+
+// 1.5 实例化云层 (我的世界方块/体素云层)
+    const clusterCount = 100;        // 50 朵宏观的方块云群
+    const blocksPerCluster = 8;     // 每朵云由 8 个大小不一的长方体横向拼接而成
+    const cloudCount = clusterCount * blocksPerCluster; 
+    
+    // 【核心修改1】：使用最基础的正方体几何
+    const cloudGeo = new THREE.BoxGeometry(1, 1, 1); 
+    // 【核心修改2】：加入 85% 的不透明度，完美还原 MC 中云层的半透明质感
+    const cloudMat = new THREE.MeshLambertMaterial({ 
+        color: 0xffffff, 
+        transparent: true,
+        opacity: 0.85
+    });
+    
+    const instancedClouds = new THREE.InstancedMesh(cloudGeo, cloudMat, cloudCount);
+    const dummy = new THREE.Object3D();
+    const cloudData = []; 
+
+    let instanceIndex = 0;
+    // 【核心修改3】：规定一个统一的云层海拔高度 (MC的云都在同一个高度的平流层)
+    const cloudLayerY = 8000; 
+
+    for (let i = 0; i < clusterCount; i++) {
+        let cx = (Math.random() - 0.5) * 250000;
+        // 高度浮动极小，保持平坦的云海感
+        let cy = cloudLayerY + (Math.random() - 0.5) * 1000 + 10000; 
+        let cz = (Math.random() - 0.5) * 250000;
+        
+        let baseScale = 3000 + Math.random() * 4000; 
+
+        for (let j = 0; j < blocksPerCluster; j++) {
+            // 方块云的特征：在水平面(X,Z)上大幅度交错延伸，垂直(Y)轴偏移很小
+            let ox = (Math.random() - 0.5) * baseScale * 1.5;
+            let oy = (Math.random() - 0.5) * 400; // Y轴轻微错位
+            let oz = (Math.random() - 0.5) * baseScale * 1.5;
+            
+            // X和Z方向长宽很大，Y方向(厚度)固定在一个较薄的范围
+            let sx = baseScale * (0.5 + Math.random() * 0.8);
+            let sy = 1000 + Math.random() * 600; // 扁平的云层厚度
+            let sz = baseScale * (0.5 + Math.random() * 0.8);
+
+            dummy.position.set(cx + ox, cy + oy, cz + oz);
+            dummy.scale.set(sx, sy, sz); 
+            // 【核心修改4】：绝对禁绝旋转！锁定在世界坐标轴上
+            dummy.rotation.set(0, 0, 0);
+            dummy.updateMatrix();
+            instancedClouds.setMatrixAt(instanceIndex, dummy.matrix);
+
+            cloudData.push({ 
+                cx, cy, cz,          
+                ox, oy, oz,          
+                sx, sy, sz
+                // 不再需要记录 rx, ry, rz，因为永远是 0
+            });
+            
+            instanceIndex++;
+        }
+    }
+    scene.add(instancedClouds);
+
+    // 环境反射贴图 (保留)
     const envCanvas = document.createElement('canvas');
-    envCanvas.width = 512;
-    envCanvas.height = 256;
+    envCanvas.width = 512; envCanvas.height = 256;
     const envCtx = envCanvas.getContext('2d');
     const envGrad = envCtx.createLinearGradient(0, 0, 0, 256);
-    envGrad.addColorStop(0, '#ffffff');    // 天顶：亮白高光
-    envGrad.addColorStop(0.4, '#6ca6cd');  // 天空：与背景雾气一致的蓝
-    envGrad.addColorStop(0.5, '#111111');  // 地平线：深邃的暗色分割线，极大增强镜面立体感
-    envGrad.addColorStop(1, '#112211');    // 地面：暗绿色
-    envCtx.fillStyle = envGrad;
-    envCtx.fillRect(0, 0, 512, 256);
+    envGrad.addColorStop(0, '#ffffff');    
+    envGrad.addColorStop(0.5, '#111111');  
+    envGrad.addColorStop(1, '#3d5c3a');    
+    envCtx.fillStyle = envGrad; envCtx.fillRect(0, 0, 512, 256);
     const envTexture = new THREE.CanvasTexture(envCanvas);
     envTexture.mapping = THREE.EquirectangularReflectionMapping;
-    scene.environment = envTexture; // 将虚拟天空赋给场景，水滴将完美反射它！
-
-    const gridHelper = new THREE.GridHelper(150000, 500, 0x336633, 0x224422);
-    scene.add(gridHelper);
+    scene.environment = envTexture;
 
     // ==========================================
     // 2. 模型生成器库
@@ -1079,11 +1452,262 @@
     let mouseNDC = new THREE.Vector2(0, 0);
     const keys = { w: false, s: false, a: false, d: false, c: false };
 
+    const isTouchDevice = window.matchMedia('(hover: none) and (pointer: coarse)').matches || ('ontouchstart' in window);
+    const fullscreenTarget = document.documentElement;
+
+    function getFullscreenElement() {
+        return document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || null;
+    }
+
+    function isFullscreenActive() {
+        return !!getFullscreenElement();
+    }
+
+    async function requestGameFullscreen() {
+        if (!mobileState.isEnabled || isFullscreenActive()) return true;
+        const target = fullscreenTarget;
+        try {
+            if (target.requestFullscreen) {
+                await target.requestFullscreen({ navigationUI: 'hide' });
+            } else if (target.webkitRequestFullscreen) {
+                target.webkitRequestFullscreen();
+            } else if (target.msRequestFullscreen) {
+                target.msRequestFullscreen();
+            } else {
+                return false;
+            }
+            if (screen.orientation && screen.orientation.lock) {
+                try { await screen.orientation.lock('landscape'); } catch (_) {}
+            }
+            window.scrollTo(0, 1);
+            return true;
+        } catch (_) {
+            return false;
+        }
+    }
+
+    async function exitGameFullscreen() {
+        try {
+            if (document.exitFullscreen && isFullscreenActive()) await document.exitFullscreen();
+            else if (document.webkitExitFullscreen && isFullscreenActive()) document.webkitExitFullscreen();
+            else if (document.msExitFullscreen && isFullscreenActive()) document.msExitFullscreen();
+        } catch (_) {}
+    }
+
+    async function toggleGameFullscreen() {
+        if (isFullscreenActive()) await exitGameFullscreen();
+        else await requestGameFullscreen();
+        updateFullscreenUI();
+    }
+
+    const mobileControlsRoot = document.getElementById('mobile-controls');
+    const mobileState = {
+        isEnabled: isTouchDevice,
+        joystickActive: false,
+        joystickPointerId: null,
+        joystickX: 0,
+        joystickY: 0,
+        aimSensitivity: 460,
+        aimReturnSpeed: 2.4
+    };
+
+    function clamp01(v) { return Math.min(1, Math.max(0, v)); }
+
+    function setAimFromScreen(x, y) {
+        mouseScreen.x = THREE.MathUtils.clamp(x, 0, window.innerWidth);
+        mouseScreen.y = THREE.MathUtils.clamp(y, 0, window.innerHeight);
+        mouseNDC.x = (mouseScreen.x / window.innerWidth) * 2 - 1;
+        mouseNDC.y = -(mouseScreen.y / window.innerHeight) * 2 + 1;
+    }
+
+    function nudgeAim(dx, dy) {
+        setAimFromScreen(mouseScreen.x + dx, mouseScreen.y + dy);
+    }
+
+    function updateMobileAim(dt) {
+        if (!mobileState.isEnabled) return;
+        if (mobileState.joystickActive) {
+            nudgeAim(mobileState.joystickX * mobileState.aimSensitivity * dt, mobileState.joystickY * mobileState.aimSensitivity * dt);
+        } else {
+            const cx = window.innerWidth * 0.5;
+            const cy = window.innerHeight * 0.5;
+            setAimFromScreen(
+                THREE.MathUtils.lerp(mouseScreen.x, cx, dt * mobileState.aimReturnSpeed),
+                THREE.MathUtils.lerp(mouseScreen.y, cy, dt * mobileState.aimReturnSpeed)
+            );
+        }
+    }
+
+    function cycleTarget(direction = 1) {
+        if (targets.length <= 0) return;
+        currentTargetIndex = (currentTargetIndex + direction + targets.length) % targets.length;
+        if (fcsState === FCS_STATES.LOCKING || fcsState === FCS_STATES.LOCKED) {
+            fcsState = FCS_STATES.WARMUP;
+            lockTimer = 0;
+            updateReticleUI();
+        }
+    }
+
+    function toggleFCS() {
+        fcsState = fcsState === FCS_STATES.OFF ? FCS_STATES.WARMUP : FCS_STATES.OFF;
+        lockTimer = 0;
+        updateReticleUI();
+    }
+
+    function updateFullscreenUI() {
+        const btn = document.getElementById('mobile-fullscreen-btn');
+        const chip = document.getElementById('mobile-mode-chip');
+        if (!btn) return;
+        const active = isFullscreenActive();
+        btn.textContent = active ? '退出全屏' : '全屏';
+        if (chip && mobileState.isEnabled) {
+            chip.textContent = active ? '移动端全屏模式' : '移动端触控模式';
+        }
+    }
+
+    function syncViewportHeight() {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--app-vh', `${vh}px`);
+    }
+
+    function initMobileUI() {
+        if (!mobileState.isEnabled) {
+            mobileControlsRoot.style.display = 'none';
+            return;
+        }
+
+        const joystickZone = document.getElementById('mobile-joystick-zone');
+        const joystickKnob = document.getElementById('mobile-joystick-knob');
+        const maxOffsetFactor = 0.32;
+
+        function resetJoystick() {
+            mobileState.joystickActive = false;
+            mobileState.joystickPointerId = null;
+            mobileState.joystickX = 0;
+            mobileState.joystickY = 0;
+            joystickKnob.style.transform = 'translate(0px, 0px)';
+        }
+
+        function updateJoystick(clientX, clientY) {
+            const rect = joystickZone.getBoundingClientRect();
+            const cx = rect.left + rect.width / 2;
+            const cy = rect.top + rect.height / 2;
+            const maxOffset = rect.width * maxOffsetFactor;
+            let dx = clientX - cx;
+            let dy = clientY - cy;
+            const len = Math.hypot(dx, dy) || 1;
+            if (len > maxOffset) {
+                dx = dx / len * maxOffset;
+                dy = dy / len * maxOffset;
+            }
+            joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+            mobileState.joystickX = dx / maxOffset;
+            mobileState.joystickY = dy / maxOffset;
+        }
+
+        joystickZone.addEventListener('pointerdown', (e) => {
+            if (!gameStarted || isPaused) return;
+            mobileState.joystickActive = true;
+            mobileState.joystickPointerId = e.pointerId;
+            joystickZone.setPointerCapture(e.pointerId);
+            updateJoystick(e.clientX, e.clientY);
+            e.preventDefault();
+        });
+
+        joystickZone.addEventListener('pointermove', (e) => {
+            if (!mobileState.joystickActive || e.pointerId !== mobileState.joystickPointerId) return;
+            updateJoystick(e.clientX, e.clientY);
+            e.preventDefault();
+        });
+
+        const endJoystick = (e) => {
+            if (e.pointerId !== undefined && e.pointerId !== mobileState.joystickPointerId) return;
+            resetJoystick();
+        };
+        joystickZone.addEventListener('pointerup', endJoystick);
+        joystickZone.addEventListener('pointercancel', endJoystick);
+        joystickZone.addEventListener('lostpointercapture', resetJoystick);
+
+        function bindHoldButton(id, keyName) {
+            const btn = document.getElementById(id);
+            const activate = (e) => {
+                if (!gameStarted || isPaused) return;
+                keys[keyName] = true;
+                btn.classList.add('active');
+                e.preventDefault();
+            };
+            const deactivate = (e) => {
+                keys[keyName] = false;
+                btn.classList.remove('active');
+                if (e) e.preventDefault();
+            };
+            btn.addEventListener('pointerdown', activate);
+            btn.addEventListener('pointerup', deactivate);
+            btn.addEventListener('pointercancel', deactivate);
+            btn.addEventListener('lostpointercapture', deactivate);
+            btn.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+
+        function bindTapButton(id, handler) {
+            const btn = document.getElementById(id);
+            btn.addEventListener('pointerdown', (e) => {
+                btn.classList.add('active');
+                e.preventDefault();
+            });
+            const release = () => btn.classList.remove('active');
+            btn.addEventListener('pointerup', (e) => {
+                if (gameStarted) handler();
+                release();
+                e.preventDefault();
+            });
+            btn.addEventListener('pointercancel', release);
+            btn.addEventListener('lostpointercapture', release);
+            btn.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
+
+        bindHoldButton('mobile-throttle-up-btn', 'w');
+        bindHoldButton('mobile-throttle-down-btn', 's');
+        bindHoldButton('mobile-roll-left-btn', 'a');
+        bindHoldButton('mobile-roll-right-btn', 'd');
+        bindHoldButton('mobile-view-btn', 'c');
+
+        bindTapButton('mobile-lock-btn', () => {
+            if (rwrSystem) rwrSystem.resumeAudio();
+            toggleFCS();
+        });
+        bindTapButton('mobile-fire-btn', () => {
+            if (rwrSystem) rwrSystem.resumeAudio();
+            if (fcsState === FCS_STATES.LOCKED) fireMissile();
+        });
+        bindTapButton('mobile-target-btn', () => cycleTarget(1));
+        bindTapButton('mobile-flare-btn', () => { if (flareSystem) flareSystem.toggle(); });
+        bindTapButton('mobile-fullscreen-btn', () => toggleGameFullscreen());
+        bindTapButton('mobile-pause-btn', () => togglePause());
+
+        document.addEventListener('fullscreenchange', updateFullscreenUI);
+        document.addEventListener('webkitfullscreenchange', updateFullscreenUI);
+        window.addEventListener('resize', syncViewportHeight);
+        window.addEventListener('orientationchange', () => {
+            syncViewportHeight();
+            setTimeout(() => window.scrollTo(0, 1), 80);
+            updateFullscreenUI();
+        });
+
+        const autoEnterFullscreen = async () => {
+            if (!gameStarted || isPaused) return;
+            await requestGameFullscreen();
+            updateFullscreenUI();
+        };
+        document.addEventListener('pointerdown', autoEnterFullscreen, { passive: true });
+
+        syncViewportHeight();
+        updateFullscreenUI();
+        setAimFromScreen(window.innerWidth / 2, window.innerHeight / 2);
+    }
+
     document.addEventListener('mousemove', (e) => {
         if (!gameStarted || isPaused) return; // 【修改】：未开始时禁止视角互动
-        mouseScreen.x = e.clientX; mouseScreen.y = e.clientY;
-        mouseNDC.x = (e.clientX / window.innerWidth) * 2 - 1;
-        mouseNDC.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        setAimFromScreen(e.clientX, e.clientY);
     });
 
     document.addEventListener('keydown', (e) => {
@@ -1461,11 +2085,11 @@
         targets.push(targetObj);
         return targetObj;
     }
-
-    for(let i=0; i<6; i++){
+    //敌机生成
+    for(let i=0; i<9; i++){
         createTarget(
             (Math.random()-0.5) * 100000,   
-            2000 + Math.random() * 80000,   
+            10000 + Math.random() * 10000,   
             -70000 - Math.random() * 20000  
         );
     }
@@ -1742,11 +2366,8 @@
     window.addEventListener('wheel', (e) => {
         if (!gameStarted || isPaused) return; // 【修改】：未开始时禁用目标切换
         if (targets.length > 0) {
-            if (e.deltaY > 0) currentTargetIndex = (currentTargetIndex + 1) % targets.length;
-            else currentTargetIndex = (currentTargetIndex - 1 + targets.length) % targets.length;
-            if (fcsState === FCS_STATES.LOCKING || fcsState === FCS_STATES.LOCKED) {
-                fcsState = FCS_STATES.WARMUP; lockTimer = 0; updateReticleUI();
-            }
+            if (e.deltaY > 0) cycleTarget(1);
+            else cycleTarget(-1);
         }
     });
 
@@ -1936,6 +2557,7 @@
         const dt = Math.min(clock.getDelta(), 0.1); 
 
         if (!isPaused) {
+            updateMobileAim(dt);
             
             if(keys.w) player.throttle += dt * 0.5;
             if(keys.s) player.throttle -= dt * 0.5;
@@ -2086,8 +2708,45 @@
             camera.fov += (targetFOV - camera.fov) * dt * 3.0;
             camera.updateProjectionMatrix();
 
-            gridHelper.position.x = Math.floor(player.mesh.position.x / 500) * 500;
-            gridHelper.position.z = Math.floor(player.mesh.position.z / 500) * 500;
+            // --- 新增：环境动态更新逻辑 (极致性能优化版) ---
+            
+            // 1. 穹顶与地形跟随
+            skydome.position.copy(player.mesh.position);
+            // 让地形像跑步机一样跟随玩家，制造无限大地形的错觉
+            terrainMesh.position.x = player.mesh.position.x;
+            terrainMesh.position.z = player.mesh.position.z;
+            
+   // 2. 实例化云层无限循环逻辑 (我的世界方块云绑定)
+            const playerPos = player.mesh.position;
+            let cloudsNeedUpdate = false;
+            const bounds = 125000; 
+
+            for (let i = 0; i < cloudCount; i++) {
+                let c = cloudData[i];
+                
+                let dx = c.cx - playerPos.x;
+                let dz = c.cz - playerPos.z;
+                
+                // 如果整体落后玩家太远，将其传送到前方
+                if (Math.abs(dx) > bounds || Math.abs(dz) > bounds) {
+                    if (dx > bounds) c.cx -= bounds * 2;
+                    if (dx < -bounds) c.cx += bounds * 2;
+                    if (dz > bounds) c.cz -= bounds * 2;
+                    if (dz < -bounds) c.cz += bounds * 2;
+                    
+                    // 重新应用矩阵：纯粹的轴对齐位移与缩放，无旋转
+                    dummy.position.set(c.cx + c.ox, c.cy + c.oy, c.cz + c.oz);
+                    dummy.scale.set(c.sx, c.sy, c.sz);
+                    dummy.rotation.set(0, 0, 0); 
+                    dummy.updateMatrix();
+                    instancedClouds.setMatrixAt(i, dummy.matrix);
+                    cloudsNeedUpdate = true;
+                }
+            }
+            if (cloudsNeedUpdate) {
+                instancedClouds.instanceMatrix.needsUpdate = true;
+            }
+            // -----------------------------
 
             document.getElementById('ui-thr').textContent = Math.round(player.throttle * 100);
             document.getElementById('ui-spd').textContent = Math.round(player.speed);
@@ -2384,8 +3043,10 @@
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
         renderer.setSize(window.innerWidth, window.innerHeight);
+        setAimFromScreen(window.innerWidth / 2, window.innerHeight / 2);
     });
 
+    initMobileUI();
     updateReticleUI();
     animate();
 
