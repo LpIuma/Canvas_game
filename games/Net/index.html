@@ -1,271 +1,297 @@
-import React, { useState, useEffect, useCallback } from 'react';
-
-// 生成游戏棋盘的核心算法 (使用 DFS 生成无环生成树)
-const generateBoard = (width, height) => {
-  // 初始化空棋盘
-  const grid = Array.from({ length: height }, (_, y) =>
-    Array.from({ length: width }, (_, x) => ({
-      x,
-      y,
-      baseConns: [false, false, false, false], // 分别代表 上(N), 右(E), 下(S), 左(W) 的基础连接状态
-      rotation: Math.floor(Math.random() * 4), // 随机初始旋转角度 (0-3)
-      type: 'wire',
-    }))
-  );
-
-  const cx = Math.floor(width / 2);
-  const cy = Math.floor(height / 2);
-  const stack = [{ x: cx, y: cy }];
-  const visited = new Set([`${cx},${cy}`]);
-
-  // 使用 DFS 生成迷宫/网络路径
-  while (stack.length > 0) {
-    const curr = stack[stack.length - 1];
-    
-    // 随机打乱四个方向，保证每次生成的网络形状不同
-    const dirs = [
-      { dx: 0, dy: -1, idx: 0, opp: 2 }, // 上
-      { dx: 1, dy: 0, idx: 1, opp: 3 },  // 右
-      { dx: 0, dy: 1, idx: 2, opp: 0 },  // 下
-      { dx: -1, dy: 0, idx: 3, opp: 1 }  // 左
-    ].sort(() => Math.random() - 0.5);
-
-    let moved = false;
-    for (let d of dirs) {
-      const nx = curr.x + d.dx;
-      const ny = curr.y + d.dy;
-      if (nx >= 0 && nx < width && ny >= 0 && ny < height && !visited.has(`${nx},${ny}`)) {
-        // 打通当前节点和相邻节点之间的连接
-        grid[curr.y][curr.x].baseConns[d.idx] = true;
-        grid[ny][nx].baseConns[d.opp] = true;
-        visited.add(`${nx},${ny}`);
-        stack.push({ x: nx, y: ny });
-        moved = true;
-        break;
-      }
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Net 网络解谜游戏</title>
+  <!-- 通过 CDN 引入 Tailwind CSS 进行快速样式布局 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* 为方块旋转添加平滑的过渡动画 */
+    .tile-svg {
+      transition: transform 0.15s ease-in-out;
     }
-    // 如果四个方向都走不通，则回溯
-    if (!moved) {
-      stack.pop();
+    /* 胜利提示画面的淡入动画 */
+    .animate-fade-in {
+      animation: fadeIn 0.3s ease-in;
     }
-  }
-
-  // 根据连接数量分配方块类型（服务器、终端、线缆）
-  let totalTerminals = 0;
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const cell = grid[y][x];
-      const connCount = cell.baseConns.filter(Boolean).length;
-      if (x === cx && y === cy) {
-        cell.type = 'server';
-      } else if (connCount === 1) {
-        cell.type = 'terminal';
-        totalTerminals++;
-      }
+    @keyframes fadeIn {
+      from { opacity: 0; backdrop-filter: blur(0px); }
+      to { opacity: 1; backdrop-filter: blur(4px); }
     }
-  }
+  </style>
+</head>
+<body class="min-h-screen bg-gray-100 flex flex-col items-center py-6 px-4 font-sans select-none">
+  
+  <!-- 顶部 UI (User Interface，用户界面) 控制栏 -->
+  <div class="w-full max-w-2xl flex justify-between items-center mb-4 bg-white p-4 rounded shadow">
+    <h1 class="text-xl font-bold text-gray-800">Net 网络谜题</h1>
+    <div class="flex gap-4 items-center">
+      <select id="size-select" class="border p-2 rounded bg-gray-50 outline-none cursor-pointer">
+        <option value="7">简单 (7x7)</option>
+        <option value="11" selected>中等 (11x11)</option>
+        <option value="15">困难 (15x15)</option>
+      </select>
+      <button id="new-game-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition active:scale-95">
+        新游戏
+      </button>
+    </div>
+  </div>
 
-  return { grid, totalTerminals };
-};
+  <!-- 游戏棋盘区域 -->
+  <div class="relative w-full max-w-2xl aspect-square shadow-lg border-[3px] border-red-600 bg-black p-[1px]">
+    <!-- 棋盘容器 -->
+    <div id="game-board" class="w-full h-full grid gap-[1px] bg-black"></div>
 
-// 获取方块在当前旋转角度下的实际连接方向
-const getCurrentConns = (baseConns, rotation) => {
-  return [
-    baseConns[(4 - rotation) % 4], // 上
-    baseConns[(5 - rotation) % 4], // 右
-    baseConns[(6 - rotation) % 4], // 下
-    baseConns[(7 - rotation) % 4]  // 左
-  ];
-};
+    <!-- 胜利提示遮罩 (默认隐藏) -->
+    <div id="win-overlay" class="hidden absolute inset-0 bg-white/80 flex flex-col items-center justify-center z-10 animate-fade-in">
+      <h2 class="text-4xl font-black text-green-600 mb-4 drop-shadow-md">网络已连通！</h2>
+      <button id="play-again-btn" class="bg-green-600 text-white px-8 py-3 rounded-full text-xl font-bold hover:bg-green-700 transition shadow-lg active:scale-95">
+        再玩一局
+      </button>
+    </div>
+  </div>
 
-export default function NetGame() {
-  const [size, setSize] = useState(11); // 默认棋盘大小 11x11
-  const [grid, setGrid] = useState([]);
-  const [totalTerminals, setTotalTerminals] = useState(0);
-  const [activeTerminals, setActiveTerminals] = useState(0);
-  const [isWon, setIsWon] = useState(false);
+  <!-- 底部状态栏 -->
+  <div class="w-full max-w-2xl mt-4 bg-white p-3 rounded shadow flex justify-between text-gray-700 font-mono text-lg">
+    <span>Active: <span id="active-count">0</span>/<span id="total-count">0</span></span>
+    <span id="win-text" class="hidden text-green-600 font-bold">已完成</span>
+  </div>
 
-  // 初始化或重置游戏
-  const startNewGame = useCallback((newSize = size) => {
-    const { grid: newGrid, totalTerminals: total } = generateBoard(newSize, newSize);
-    setGrid(newGrid);
-    setTotalTerminals(total);
-    setIsWon(false);
-    checkGameState(newGrid, newSize);
-  }, [size]);
+  <!-- 游戏核心逻辑脚本 -->
+  <script>
+    // 游戏全局状态变量
+    let currentSize = 11;
+    let gridData = [];
+    let totalTerminals = 0;
+    let isWon = false;
 
-  useEffect(() => {
-    startNewGame();
-  }, [startNewGame]);
+    // 获取 DOM 元素
+    const boardEl = document.getElementById('game-board');
+    const sizeSelect = document.getElementById('size-select');
+    const newGameBtn = document.getElementById('new-game-btn');
+    const playAgainBtn = document.getElementById('play-again-btn');
+    const activeCountEl = document.getElementById('active-count');
+    const totalCountEl = document.getElementById('total-count');
+    const winOverlay = document.getElementById('win-overlay');
+    const winText = document.getElementById('win-text');
 
-  // 检查当前的连通状态和胜利条件
-  const checkGameState = (currentGrid, currentSize) => {
-    if (!currentGrid || currentGrid.length === 0) return;
+    // 生成游戏棋盘的核心算法
+    function generateBoard(width, height) {
+      const grid = Array.from({ length: height }, (_, y) =>
+        Array.from({ length: width }, (_, x) => ({
+          x, y,
+          baseConns: [false, false, false, false], // 上(0), 右(1), 下(2), 左(3)
+          rotation: Math.floor(Math.random() * 4),
+          type: 'wire',
+        }))
+      );
 
-    const cx = Math.floor(currentSize / 2);
-    const cy = Math.floor(currentSize / 2);
-    
-    // 使用 BFS (广度优先搜索) 模拟电流从中央服务器传导出去
-    const queue = [{ x: cx, y: cy }];
-    const visited = new Set([`${cx},${cy}`]);
-    let activeCount = 0;
+      const cx = Math.floor(width / 2);
+      const cy = Math.floor(height / 2);
+      const stack = [{ x: cx, y: cy }];
+      const visited = new Set([`${cx},${cy}`]);
 
-    while (queue.length > 0) {
-      const { x, y } = queue.shift();
-      const tile = currentGrid[y][x];
-      
-      if (tile.type === 'terminal') {
-        activeCount++;
+      // 深度优先搜索生成无环网络
+      while (stack.length > 0) {
+        const curr = stack[stack.length - 1];
+        const dirs = [
+          { dx: 0, dy: -1, idx: 0, opp: 2 },
+          { dx: 1, dy: 0, idx: 1, opp: 3 },
+          { dx: 0, dy: 1, idx: 2, opp: 0 },
+          { dx: -1, dy: 0, idx: 3, opp: 1 }
+        ].sort(() => Math.random() - 0.5);
+
+        let moved = false;
+        for (let d of dirs) {
+          const nx = curr.x + d.dx;
+          const ny = curr.y + d.dy;
+          if (nx >= 0 && nx < width && ny >= 0 && ny < height && !visited.has(`${nx},${ny}`)) {
+            grid[curr.y][curr.x].baseConns[d.idx] = true;
+            grid[ny][nx].baseConns[d.opp] = true;
+            visited.add(`${nx},${ny}`);
+            stack.push({ x: nx, y: ny });
+            moved = true;
+            break;
+          }
+        }
+        if (!moved) stack.pop();
       }
 
-      const conns = getCurrentConns(tile.baseConns, tile.rotation);
-      const neighbors = [
-        { dx: 0, dy: -1, opp: 2, hasConn: conns[0] }, // 上
-        { dx: 1, dy: 0, opp: 3, hasConn: conns[1] },  // 右
-        { dx: 0, dy: 1, opp: 0, hasConn: conns[2] },  // 下
-        { dx: -1, dy: 0, opp: 1, hasConn: conns[3] }  // 左
+      let terminals = 0;
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const cell = grid[y][x];
+          const connCount = cell.baseConns.filter(Boolean).length;
+          if (x === cx && y === cy) {
+            cell.type = 'server';
+          } else if (connCount === 1) {
+            cell.type = 'terminal';
+            terminals++;
+          }
+        }
+      }
+
+      return { grid, terminals };
+    }
+
+    // 获取旋转后的实际连接口
+    function getCurrentConns(baseConns, rotation) {
+      // 将累加的旋转次数标准化为 0-3 之间，处理可能出现的负数或大于3的数
+      const r = ((rotation % 4) + 4) % 4;
+      return [
+        baseConns[(4 - r) % 4],
+        baseConns[(5 - r) % 4],
+        baseConns[(6 - r) % 4],
+        baseConns[(7 - r) % 4]
       ];
+    }
 
-      for (let n of neighbors) {
-        if (n.hasConn) {
-          const nx = x + n.dx;
-          const ny = y + n.dy;
-          if (nx >= 0 && nx < currentSize && ny >= 0 && ny < currentSize && !visited.has(`${nx},${ny}`)) {
-            const nTile = currentGrid[ny][nx];
-            const nConns = getCurrentConns(nTile.baseConns, nTile.rotation);
-            // 检查相邻方块是否有反方向的接头连接过来
-            if (nConns[n.opp]) {
-              visited.add(`${nx},${ny}`);
-              queue.push({ x: nx, y: ny });
+    // 检查游戏连通状态
+    function checkGameState() {
+      if (!gridData || gridData.length === 0) return;
+
+      const cx = Math.floor(currentSize / 2);
+      const cy = Math.floor(currentSize / 2);
+      
+      const queue = [{ x: cx, y: cy }];
+      const visited = new Set([`${cx},${cy}`]);
+      let activeCount = 0;
+
+      while (queue.length > 0) {
+        const { x, y } = queue.shift();
+        const tile = gridData[y][x];
+        
+        if (tile.type === 'terminal') activeCount++;
+
+        const conns = getCurrentConns(tile.baseConns, tile.rotation);
+        const neighbors = [
+          { dx: 0, dy: -1, opp: 2, hasConn: conns[0] },
+          { dx: 1, dy: 0, opp: 3, hasConn: conns[1] },
+          { dx: 0, dy: 1, opp: 0, hasConn: conns[2] },
+          { dx: -1, dy: 0, opp: 1, hasConn: conns[3] }
+        ];
+
+        for (let n of neighbors) {
+          if (n.hasConn) {
+            const nx = x + n.dx;
+            const ny = y + n.dy;
+            if (nx >= 0 && nx < currentSize && ny >= 0 && ny < currentSize && !visited.has(`${nx},${ny}`)) {
+              const nTile = gridData[ny][nx];
+              const nConns = getCurrentConns(nTile.baseConns, nTile.rotation);
+              if (nConns[n.opp]) {
+                visited.add(`${nx},${ny}`);
+                queue.push({ x: nx, y: ny });
+              }
             }
           }
         }
       }
+
+      // 更新 UI
+      activeCountEl.innerText = activeCount;
+
+      // 判定胜利
+      if (visited.size === currentSize * currentSize) {
+        isWon = true;
+        winOverlay.classList.remove('hidden');
+        winText.classList.remove('hidden');
+      }
     }
 
-    setActiveTerminals(activeCount);
-    // 如果所有方块都被点亮（连入网络），且因为生成的是树结构，这意味着没有断头线和死循环，即为胜利。
-    if (visited.size === currentSize * currentSize) {
-      setIsWon(true);
+    // 渲染棋盘 HTML
+    function renderBoard() {
+      boardEl.style.gridTemplateColumns = `repeat(${currentSize}, minmax(0, 1fr))`;
+      let html = '';
+      
+      for (let y = 0; y < currentSize; y++) {
+        for (let x = 0; x < currentSize; x++) {
+          const tile = gridData[y][x];
+          const transformStr = `transform: rotate(${tile.rotation * 90}deg);`;
+          
+          let linesHtml = '';
+          if (tile.baseConns[0]) linesHtml += '<line x1="50" y1="50" x2="50" y2="0" stroke="black" stroke-width="12" stroke-linecap="square" />';
+          if (tile.baseConns[1]) linesHtml += '<line x1="50" y1="50" x2="100" y2="50" stroke="black" stroke-width="12" stroke-linecap="square" />';
+          if (tile.baseConns[2]) linesHtml += '<line x1="50" y1="50" x2="50" y2="100" stroke="black" stroke-width="12" stroke-linecap="square" />';
+          if (tile.baseConns[3]) linesHtml += '<line x1="50" y1="50" x2="0" y2="50" stroke="black" stroke-width="12" stroke-linecap="square" />';
+          
+          let nodeHtml = '';
+          if (tile.type === 'server') nodeHtml = '<rect x="25" y="25" width="50" height="50" fill="black" rx="8" />';
+          if (tile.type === 'terminal') nodeHtml = '<rect x="25" y="25" width="50" height="50" fill="#0000ee" />';
+
+          html += `
+            <div class="tile w-full h-full bg-white flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors" data-x="${x}" data-y="${y}">
+              <svg viewBox="0 0 100 100" class="w-full h-full block tile-svg" style="${transformStr}">
+                ${linesHtml}
+                ${nodeHtml}
+              </svg>
+            </div>
+          `;
+        }
+      }
+      boardEl.innerHTML = html;
     }
-  };
 
-  // 处理方块点击旋转
-  const handleTileClick = (e, x, y, direction) => {
-    e.preventDefault(); // 阻止右键菜单
-    if (isWon) return;
+    // 处理方块点击逻辑
+    function handleTileInteraction(element, direction) {
+      if (isWon) return;
+      
+      // 获取点击的方块坐标
+      const x = parseInt(element.dataset.x);
+      const y = parseInt(element.dataset.y);
+      const tile = gridData[y][x];
+      
+      // 更新数据层旋转角度 (取消取模，让角度无限累加，保证动画永远沿着正确方向平滑旋转)
+      tile.rotation = tile.rotation + direction;
+      
+      // 仅更新被点击的 SVG 元素的样式，保持极致性能
+      const svg = element.querySelector('svg');
+      svg.style.transform = `rotate(${tile.rotation * 90}deg)`;
+      
+      // 检查最新连通状态
+      checkGameState();
+    }
 
-    const newGrid = [...grid];
-    const tile = { ...newGrid[y][x] };
-    
-    // direction: 1 为顺时针, -1 为逆时针
-    tile.rotation = (tile.rotation + direction + 4) % 4;
-    newGrid[y][x] = tile;
-    
-    setGrid(newGrid);
-    checkGameState(newGrid, size);
-  };
+    // 初始化新游戏
+    function startNewGame(newSize) {
+      if (newSize) currentSize = parseInt(newSize);
+      
+      const result = generateBoard(currentSize, currentSize);
+      gridData = result.grid;
+      totalTerminals = result.terminals;
+      isWon = false;
+      
+      // 重置 UI 状态
+      totalCountEl.innerText = totalTerminals;
+      winOverlay.classList.add('hidden');
+      winText.classList.add('hidden');
+      
+      renderBoard();
+      checkGameState();
+    }
 
-  // 渲染单个方块 (使用 SVG 保证在各种屏幕下的清晰度)
-  const renderTile = (tile) => {
-    const { type, baseConns, rotation } = tile;
-    // 使用 CSS transform 处理旋转，这样可以自带流畅的过渡动画
-    const transformStyle = {
-      transform: `rotate(${rotation * 90}deg)`,
-      transition: 'transform 0.15s ease-in-out'
-    };
+    // --- 事件监听绑定 ---
 
-    return (
-      <svg viewBox="0 0 100 100" className="w-full h-full block" style={transformStyle}>
-        {/* 绘制底层的网格线，替代网页元素的边框 */}
-        <rect x="0" y="0" width="100" height="100" fill="transparent" stroke="#d1d5db" strokeWidth="2" />
-        
-        {/* 绘制线缆 (顶层，会完美覆盖在网格线上，消除空隙) */}
-        {baseConns[0] && <line x1="50" y1="50" x2="50" y2="0" stroke="black" strokeWidth="12" strokeLinecap="square" />}
-        {baseConns[1] && <line x1="50" y1="50" x2="100" y2="50" stroke="black" strokeWidth="12" strokeLinecap="square" />}
-        {baseConns[2] && <line x1="50" y1="50" x2="50" y2="100" stroke="black" strokeWidth="12" strokeLinecap="square" />}
-        {baseConns[3] && <line x1="50" y1="50" x2="0" y2="50" stroke="black" strokeWidth="12" strokeLinecap="square" />}
-        
-        {/* 绘制服务器中心节点 */}
-        {type === 'server' && (
-          <rect x="25" y="25" width="50" height="50" fill="black" rx="8" />
-        )}
-        
-        {/* 绘制蓝色终端节点 */}
-        {type === 'terminal' && (
-           <rect x="25" y="25" width="50" height="50" fill="#0000ee" />
-        )}
-      </svg>
-    );
-  };
+    // 左键点击顺时针旋转
+    boardEl.addEventListener('click', (e) => {
+      const tileEl = e.target.closest('.tile');
+      if (tileEl) handleTileInteraction(tileEl, 1);
+    });
 
-  return (
-    <div className="min-h-screen bg-gray-100 flex flex-col items-center py-6 px-4 font-sans select-none">
-      {/* 顶部控制栏 (UI) */}
-      <div className="w-full max-w-2xl flex justify-between items-center mb-4 bg-white p-4 rounded shadow">
-        <h1 className="text-xl font-bold text-gray-800">Net 网络谜题</h1>
-        <div className="flex gap-4 items-center">
-          <select 
-            className="border p-2 rounded bg-gray-50 outline-none cursor-pointer"
-            value={size} 
-            onChange={(e) => {
-              const newSize = parseInt(e.target.value);
-              setSize(newSize);
-              startNewGame(newSize);
-            }}
-          >
-            <option value={7}>简单 (7x7)</option>
-            <option value={11}>中等 (11x11)</option>
-            <option value={15}>困难 (15x15)</option>
-          </select>
-          <button 
-            onClick={() => startNewGame(size)}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition active:scale-95"
-          >
-            新游戏
-          </button>
-        </div>
-      </div>
+    // 右键点击逆时针旋转
+    boardEl.addEventListener('contextmenu', (e) => {
+      e.preventDefault(); // 阻止浏览器弹出右键菜单
+      const tileEl = e.target.closest('.tile');
+      if (tileEl) handleTileInteraction(tileEl, -1);
+    });
 
-      {/* 游戏棋盘区域 */}
-      <div className="relative w-full max-w-2xl aspect-square bg-white shadow-lg border-[3px] border-red-600 p-0.5">
-        <div 
-          className="w-full h-full grid" 
-          style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }}
-        >
-          {grid.map((row, y) => 
-            row.map((tile, x) => (
-              <div 
-                key={`${x}-${y}`} 
-                className="w-full h-full flex items-center justify-center cursor-pointer hover:bg-gray-100 transition-colors"
-                onClick={(e) => handleTileClick(e, x, y, 1)}        // 左键或点击：顺时针
-                onContextMenu={(e) => handleTileClick(e, x, y, -1)} // 右键：逆时针
-              >
-                {renderTile(tile)}
-              </div>
-            ))
-          )}
-        </div>
+    // 绑定按钮和选择器事件
+    newGameBtn.addEventListener('click', () => startNewGame());
+    playAgainBtn.addEventListener('click', () => startNewGame());
+    sizeSelect.addEventListener('change', (e) => startNewGame(e.target.value));
 
-        {/* 胜利提示遮罩 */}
-        {isWon && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-10 animate-fade-in">
-            <h2 className="text-4xl font-black text-green-600 mb-4 drop-shadow-md">网络已连通！</h2>
-            <button 
-              onClick={() => startNewGame(size)}
-              className="bg-green-600 text-white px-8 py-3 rounded-full text-xl font-bold hover:bg-green-700 transition shadow-lg active:scale-95"
-            >
-              再玩一局
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* 底部状态栏 */}
-      <div className="w-full max-w-2xl mt-4 bg-white p-3 rounded shadow flex justify-between text-gray-700 font-mono text-lg">
-        <span>Active: {activeTerminals}/{totalTerminals}</span>
-        {isWon && <span className="text-green-600 font-bold">已完成</span>}
-      </div>
-    </div>
-  );
-}
+    // 网页加载完成后启动游戏
+    startNewGame(currentSize);
+  </script>
+</body>
+</html>
